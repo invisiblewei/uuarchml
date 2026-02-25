@@ -1,5 +1,5 @@
 {
-  "name": "chipviz",
+  "name": "uuarckml",
   "version": "0.1.0",
   "description": "芯片架构设计可视化工具 - 基于 Mermaid 魔改，用于 RTL 代码撰写前的 AI 与人对齐",
   "type": "module",

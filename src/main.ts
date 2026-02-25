@@ -1,5 +1,5 @@
 /**
- * ChipViz Web 应用主入口
+ * uuarckml Web 应用主入口
  */
 
 import { parseDSL, renderToSVG, createAIAssistant } from './index';
