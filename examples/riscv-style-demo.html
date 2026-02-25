@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChipViz - RISC-V Datapath Style</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #1a1a2e;
+            color: #eaeaea;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            padding: 16px 24px;
+            border-bottom: 1px solid #e94560;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #e94560;
+            letter-spacing: -0.5px;
+        }
+
+        .header .subtitle {
+            font-size: 13px;
+            color: #a0a0a0;
+        }
+
+        /* Main Layout */
+        .main {
+            display: flex;
+            height: calc(100vh - 65px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 360px;
+            background: #16213e;
+            border-right: 1px solid #2d3561;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #e94560;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: #e94560;
+            border-radius: 2px;
+        }
+
+        /* Code Editor Style */
+        .code-block {
+            background: #0f1419;
+            border: 1px solid #2d3561;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #abb2bf;
+            overflow-x: auto;
+        }
+
+        .code-block .key { color: #c678dd; }
+        .code-block .string { color: #98c379; }
+        .code-block .number { color: #d19a66; }
+        .code-block .comment { color: #5c6370; font-style: italic; }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 16px 20px;
+            border-top: 1px solid #2d3561;
+            background: #16213e;
+        }
+
+        .btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #ff6b6b;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #2d3561;
+        }
+
+        .btn-secondary:hover {
+            background: #3d4571;
+        }
+
+        /* Canvas Area */
+        .canvas-container {
+            flex: 1;
+            background: #0f0f1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            padding: 40px;
+        }
+
+        /* Pipeline Diagram - RISC-V Style */
+        .pipeline-diagram {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Stage Container */
+        .stages {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 30px;
+        }
+
+        .stage {
+            flex: 1;
+            text-align: center;
+        }
+
+        .stage-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #e94560;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            border: 2px solid #e94560;
+            border-radius: 8px 8px 0 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .stage-content {
+            background: #16213e;
+            border: 1px solid #2d3561;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            padding: 20px;
+            min-height: 200px;
+        }
+
+        /* Component Blocks */
+        .component {
+            background: linear-gradient(135deg, #1e3a5f 0%, #16213e 100%);
+            border: 2px solid #4a9eff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 8px 0;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a9eff;
+            position: relative;
+        }
+
+        .component.mux {
+            background: linear-gradient(135deg, #5c2d5c 0%, #3d1f3d 100%);
+            border-color: #ff6b9d;
+            color: #ff6b9d;
+            clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%);
+        }
+
+        .component.arbiter {
+            background: linear-gradient(135deg, #5c4a2d 0%, #3d321f 100%);
+            border-color: #ffd93d;
+            color: #ffd93d;
+            transform: rotate(45deg);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+        }
+
+        .component.arbiter span {
+            transform: rotate(-45deg);
+            font-size: 11px;
+        }
+
+        .component.fifo {
+            background: linear-gradient(135deg, #2d5c3f 0%, #1f3d2d 100%);
+            border-color: #6bcf7f;
+            color: #6bcf7f;
+            border-radius: 20px;
+        }
+
+        .component.port {
+            background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
+            border-color: #a0a0a0;
+            color: #a0a0a0;
+            border-width: 3px;
+        }
+
+        /* Pipeline Registers */
+        .pipe-reg {
+            background: #e94560;
+            color: white;
+            font-size: 10px;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin: 12px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Signal Flow Lines */
+        .signal-flow {
+            position: relative;
+            height: 60px;
+            margin: 20px 0;
+        }
+
+        .signal-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, #4a9eff, #e94560);
+            border-radius: 1px;
+        }
+
+        .signal-arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 10px solid #e94560;
+        }
+
+        /* Bypass Network Highlight */
+        .bypass-highlight {
+            background: rgba(255, 107, 157, 0.15);
+            border: 2px dashed #ff6b9d;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+            position: relative;
+        }
+
+        .bypass-highlight::before {
+            content: 'Bypass Network';
+            position: absolute;
+            top: -10px;
+            left: 16px;
+            background: #1a1a2e;
+            color: #ff6b9d;
+            font-size: 10px;
+            padding: 2px 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Critical Path */
+        .critical-path {
+            background: rgba(233, 69, 96, 0.2);
+            border: 2px solid #e94560;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+        }
+
+        /* Info Panel */
+        .info-panel {
+            background: #16213e;
+            border: 1px solid #2d3561;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .info-title {
+            font-size: 12px;
+            color: #e94560;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #2d3561;
+            font-size: 12px;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #a0a0a0;
+        }
+
+        .info-value {
+            color: #4a9eff;
+            font-weight: 600;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 24px;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #2d3561;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #a0a0a0;
+        }
+
+        .legend-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .legend-box.block { background: #4a9eff; border: 2px solid #4a9eff; }
+        .legend-box.mux { background: #ff6b9d; clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }
+        .legend-box.bypass { background: rgba(255, 107, 157, 0.3); border: 2px dashed #ff6b9d; }
+        .legend-box.critical { background: #e94560; box-shadow: 0 0 10px #e94560; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <rect x="2" y="2" width="12" height="12" rx="2" stroke="#e94560" stroke-width="2" fill="none"/>
+                <rect x="18" y="2" width="12" height="12" rx="2" stroke="#4a9eff" stroke-width="2" fill="none"/>
+                <rect x="2" y="18" width="12" height="12" rx="2" stroke="#6bcf7f" stroke-width="2" fill="none"/>
+                <rect x="18" y="18" width="12" height="12" rx="2" stroke="#ffd93d" stroke-width="2" fill="none"/>
+            </svg>
+            <div>
+                <h1>ChipViz</h1>
+                <span class="subtitle">RISC-V Datapath Visualization</span>
+            </div>
+        </div>
+        <div style="font-size: 12px; color: #a0a0a0;">
+            YAML → Mermaid → SVG
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="sidebar">
+            <div class="panel">
+                <div class="panel-title">Chip DSL (YAML)</div>
+                <div class="code-block">
+<span class="key">chip</span>: <span class="string">riscv_cpu</span>
+
+<span class="comment"># 图元定义</span>
+<span class="key">nodes</span>:
+  - <span class="key">id</span>: <span class="string">fetch</span>
+    <span class="key">type</span>: <span class="string">block</span>
+    <span class="key">label</span>: <span class="string">"IFU"</span>
+    
+  - <span class="key">id</span>: <span class="string">op1_sel</span>
+    <span class="key">type</span>: <span class="string">mux</span>
+    <span class="key">label</span>: <span class="string">"OP1"</span>
+    <span class="key">inputs</span>: <span class="number">3</span>
+
+<span class="comment"># 信号连接</span>
+<span class="key">signals</span>:
+  - <span class="key">from</span>: <span class="string">execute</span>
+    <span class="key">to</span>: <span class="string">op1_sel</span>
+    <span class="key">name</span>: <span class="string">"bypass_ex"</span>
+    <span class="key">critical</span>: <span class="key">true</span>
+
+<span class="comment"># 流水线标注</span>
+<span class="key">annotations</span>:
+  <span class="key">pipeline</span>:
+    <span class="key">stages</span>:
+      - {<span class="key">name</span>: <span class="string">IF</span>, <span class="key">nodes</span>: [<span class="string">fetch</span>]}
+      - {<span class="key">name</span>: <span class="string">EX</span>, <span class="key">nodes</span>: [<span class="string">op1_sel</span>]}
+                </div>
+
+                <div class="info-panel">
+                    <div class="info-title">Design Metrics</div>
+                    <div class="info-item">
+                        <span class="info-label">Pipeline Stages</span>
+                        <span class="info-value">5</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Total Nodes</span>
+                        <span class="info-value">12</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Critical Path</span>
+                        <span class="info-value" style="color: #e94560;">~800ps</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Bypass Network</span>
+                        <span class="info-value" style="color: #ff6b9d;">3-to-1</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <button class="btn">Render</button>
+                <button class="btn btn-secondary">Export SVG</button>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <div class="pipeline-diagram">
+                <!-- Pipeline Stages -->
+                <div class="stages">
+                    <div class="stage">
+                        <div class="stage-label">IF</div>
+                        <div class="stage-content">
+                            <div class="component">PC</div>
+                            <div class="component">IMem</div>
+                            <div class="pipe-reg">IF/ID</div>
+                        </div>
+                    </div>
+                    <div class="stage">
+                        <div class="stage-label">ID</div>
+                        <div class="stage-content">
+                            <div class="component">Decode</div>
+                            <div class="component">RegFile</div>
+                            <div class="pipe-reg">ID/EX</div>
+                        </div>
+                    </div>
+                    <div class="stage">
+                        <div class="stage-label">EX</div>
+                        <div class="stage-content">
+                            <div class="bypass-highlight">
+                                <div class="component mux">OP1 Sel</div>
+                                <div class="component mux">OP2 Sel</div>
+                                <div class="component critical-path">ALU</div>
+                            </div>
+                            <div class="pipe-reg">EX/MEM</div>
+                        </div>
+                    </div>
+                    <div class="stage">
+                        <div class="stage-label">MEM</div>
+                        <div class="stage-content">
+                            <div class="component">DMEM</div>
+                            <div class="pipe-reg">MEM/WB</div>
+                        </div>
+                    </div>
+                    <div class="stage">
+                        <div class="stage-label">WB</div>
+                        <div class="stage-content">
+                            <div class="component">Write Back</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-box block"></div>
+                        <span>Block (功能块)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box mux"></div>
+                        <span>Mux (选择器)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box bypass"></div>
+                        <span>Bypass Network</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box critical"></div>
+                        <span>Critical Path</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
