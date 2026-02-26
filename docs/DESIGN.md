@@ -44,11 +44,10 @@ chip
 │   └── axi4_if
 ├── blocks         # 可复用模块定义
 │   └── fetch
-│       ├── nodes
-│       └── conns
-└── root           # 顶层实例化
-    ├── nodes      # 图元实例
-    └── conns      # 连接关系
+│       ├── nodes  # 内部图元
+│       └── conns  # 内部连接
+└── root           # 顶层实例
+    └── top        # 引用 block 作为顶层
 ```
 
 ### 2.3 概念定义
@@ -57,7 +56,7 @@ chip
 |------|------|------|
 | **interface** | 预声明的信号组，用于总线/协议 | AXI4、AHB、自定义总线 |
 | **block** | 可复用模块定义，可嵌套 | Fetch、Decode、Execute |
-| **node** | 基础图元实例 | mux、arbiter、fifo、block 实例 |
+| **node** | 基础图元（4种类型） | mux、arbiter、fifo、block 引用 |
 
 ### 2.4 基础图元类型（4种）
 
@@ -94,15 +93,8 @@ blocks:
     nodes: [...]
     conns: [...]
 
-# 顶层实例化（必需）
-root:
-  nodes:
-    - id: fetch_inst
-      type: block
-      block: fetch
-  conns:
-    - from: fetch_inst
-      to: decode_inst
+# 顶层实例（必需，引用 block）
+root: top
 
 # 标注层（可选）
 pipeline: {}
@@ -175,42 +167,34 @@ blocks:
         sig: operand1
 ```
 
-### 3.4 顶层实例化（root）
+### 3.4 顶层实例（root）
+
+顶层只需指定 block 名称，该 block 的 nodes 和 conns 构成完整设计。
 
 ```yaml
-root:
-  nodes:
-    # 引用 block 定义
-    - id: fetch_inst
-      type: block
-      block: fetch
-      
-    - id: decode_inst
-      type: block
-      block: decode
+root: top          # 引用 blocks 中定义的 top
 
-    # 直接使用基础图元
-    - id: op1_sel
-      type: mux
-      inputs: 3
-      
-    - id: mem_arb
-      type: arbiter
-      masters: 2
-
-  conns:
-    # 通过 interface 连接
-    - from: fetch_inst
-      to: mem_arb
-      interface: axi4_if
-      name: if_axi
-
-    # 通过 sig 连接
-    - from: decode_inst
-      to: op1_sel
-      sig: rs1_data
-      width: 32
-      type: data
+blocks:
+  - id: top
+    label: "RISC-V CPU"
+    nodes:
+      - id: fetch
+        type: block
+        block: fetch_unit
+      - id: decode
+        type: block
+        block: decode_unit
+      - id: op1_sel
+        type: mux
+        inputs: 3
+    conns:
+      - from: fetch
+        to: decode
+        interface: axi4_if
+      - from: decode
+        to: op1_sel
+        sig: rs1_data
+        width: 32
 ```
 
 ### 3.5 连接定义（conns）
@@ -352,168 +336,176 @@ blocks:
     conns: []
 
 # ═══════════════════════════════════════════════════
-# 顶层实例化
+# 顶层实例
 # ═══════════════════════════════════════════════════
 
-root:
-  nodes:
-    # ── IF Stage ──
-    - id: pc_reg
-      type: block
-      block: pc_reg_block
+root: riscv_top
 
-    - id: imem_if
-      type: interface
-      interface: axi4_if
+# ═══════════════════════════════════════════════════
+# 模块定义
+# ═══════════════════════════════════════════════════
 
-    # ── ID Stage ──
-    - id: decode
-      type: block
-      block: decode_block
+blocks:
+  - id: riscv_top
+    label: "RISC-V CPU"
+    nodes:
+      # ── IF Stage ──
+      - id: pc_reg
+        type: block
+        block: pc_reg_block
 
-    - id: regfile
-      type: block
-      block: regfile
+      - id: imem_if
+        type: interface
+        interface: axi4_if
 
-    # ── EX Stage ──
-    - id: op1_sel
-      type: mux
-      inputs: 3
+      # ── ID Stage ──
+      - id: decode
+        type: block
+        block: decode_block
 
-    - id: op2_sel
-      type: mux
-      inputs: 3
+      - id: regfile
+        type: block
+        block: regfile_block
 
-    - id: execute
-      type: block
-      block: execute_block
+      # ── EX Stage ──
+      - id: op1_sel
+        type: mux
+        inputs: 3
 
-    # ── MEM Stage ──
-    - id: memory
-      type: block
-      block: memory_block
+      - id: op2_sel
+        type: mux
+        inputs: 3
 
-    - id: mem_arb
-      type: arbiter
-      masters: 2
+      - id: execute
+        type: block
+        block: execute_block
 
-    - id: dmem_if
-      type: interface
-      interface: axi4_if
+      # ── MEM Stage ──
+      - id: memory
+        type: block
+        block: memory_block
 
-    # ── WB Stage ──
-    - id: writeback
-      type: block
-      block: writeback_block
+      - id: mem_arb
+        type: arbiter
+        masters: 2
 
-  conns:
-    # ── IF → ID ──
-    - from: pc_reg
-      to: imem_if
-      sig: pc
-      width: 32
+      - id: dmem_if
+        type: interface
+        interface: axi4_if
 
-    - from: imem_if
-      to: decode
-      interface: axi4_if
-      name: instr_fetch
+      # ── WB Stage ──
+      - id: writeback
+        type: block
+        block: writeback_block
 
-    - from: decode
-      to: regfile
-      sig: rs_addr
-      width: 10
-      type: control
+    conns:
+      # ── IF → ID ──
+      - from: pc_reg
+        to: imem_if
+        sig: pc
+        width: 32
 
-    # ── ID → EX ──
-    - from: regfile
-      to: op1_sel
-      sig: rs1_data
-      width: 32
-      type: data
+      - from: imem_if
+        to: decode
+        interface: axi4_if
+        name: instr_fetch
 
-    - from: regfile
-      to: op2_sel
-      sig: rs2_data
-      width: 32
-      type: data
+      - from: decode
+        to: regfile
+        sig: rs_addr
+        width: 10
+        type: control
 
-    - from: op1_sel
-      to: execute
-      sig: operand1
-      width: 32
-      type: data
+      # ── ID → EX ──
+      - from: regfile
+        to: op1_sel
+        sig: rs1_data
+        width: 32
+        type: data
 
-    - from: op2_sel
-      to: execute
-      sig: operand2
-      width: 32
-      type: data
+      - from: regfile
+        to: op2_sel
+        sig: rs2_data
+        width: 32
+        type: data
 
-    # ── EX → MEM ──
-    - from: execute
-      to: memory
-      sig: alu_result
-      width: 32
-      type: data
+      - from: op1_sel
+        to: execute
+        sig: operand1
+        width: 32
+        type: data
 
-    - from: memory
-      to: dmem_if
-      interface: axi4_if
-      name: data_access
+      - from: op2_sel
+        to: execute
+        sig: operand2
+        width: 32
+        type: data
 
-    # ── MEM → WB ──
-    - from: memory
-      to: writeback
-      sig: mem_data
-      width: 32
-      type: data
+      # ── EX → MEM ──
+      - from: execute
+        to: memory
+        sig: alu_result
+        width: 32
+        type: data
 
-    # ── WB → ID ──
-    - from: writeback
-      to: regfile
-      sig: rd_data
-      width: 32
-      type: data
+      - from: memory
+        to: dmem_if
+        interface: axi4_if
+        name: data_access
 
-    # ── 旁路网络 ──
-    - id: bypass_ex_conn
-      from: execute
-      to: op1_sel
-      sig: bypass_ex
-      width: 32
-      type: bypass
+      # ── MEM → WB ──
+      - from: memory
+        to: writeback
+        sig: mem_data
+        width: 32
+        type: data
 
-    - id: bypass_ex2_conn
-      from: execute
-      to: op2_sel
-      sig: bypass_ex2
-      width: 32
-      type: bypass
+      # ── WB → ID ──
+      - from: writeback
+        to: regfile
+        sig: rd_data
+        width: 32
+        type: data
 
-    - id: bypass_mem_conn
-      from: memory
-      to: op1_sel
-      sig: bypass_mem
-      width: 32
-      type: bypass
+      # ── 旁路网络 ──
+      - id: bypass_ex_conn
+        from: execute
+        to: op1_sel
+        sig: bypass_ex
+        width: 32
+        type: bypass
 
-    - id: bypass_mem2_conn
-      from: memory
-      to: op2_sel
-      sig: bypass_mem2
-      width: 32
-      type: bypass
+      - id: bypass_ex2_conn
+        from: execute
+        to: op2_sel
+        sig: bypass_ex2
+        width: 32
+        type: bypass
 
-    # ── 内存仲裁 ──
-    - from: imem_if
-      to: mem_arb
-      interface: axi4_if
-      name: if_req
+      - id: bypass_mem_conn
+        from: memory
+        to: op1_sel
+        sig: bypass_mem
+        width: 32
+        type: bypass
 
-    - from: dmem_if
-      to: mem_arb
-      interface: axi4_if
-      name: lsu_req
+      - id: bypass_mem2_conn
+        from: memory
+        to: op2_sel
+        sig: bypass_mem2
+        width: 32
+        type: bypass
+
+      # ── 内存仲裁 ──
+      - from: imem_if
+        to: mem_arb
+        interface: axi4_if
+        name: if_req
+
+      - from: dmem_if
+        to: mem_arb
+        interface: axi4_if
+        name: lsu_req
 
 # ═══════════════════════════════════════════════════
 # 标注层
