@@ -111,9 +111,10 @@ blocks:
     conns: [...]
 
 # 标注层（可选）
-pipeline: {}
-highlight: []
-notes: []
+annotations:
+  pipeline: {}
+  highlight: []
+  notes: []
 ```
 
 **顶层字段说明**:
@@ -124,9 +125,7 @@ notes: []
 | `metadata` | 否 | 版本、描述等元信息 |
 | `interfaces` | 否 | 预声明接口定义（全局） |
 | `blocks` | 是 | 模块/功能块定义列表 |
-| `pipeline` | 否 | 流水线阶段标注 |
-| `highlight` | 否 | 高亮标注列表 |
-| `notes` | 否 | 文本注释列表 |
+| `annotations` | 否 | 标注层，包含 pipeline、highlight、notes |
 
 ### 3.2 接口定义（interfaces）
 
@@ -147,6 +146,22 @@ interfaces:
         width: 32
         direction: in
 ```
+
+**interfaces 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `id` | 是 | 接口唯一标识 |
+| `label` | 否 | 显示名称 |
+| `signals` | 是 | 信号列表 |
+
+**signal 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `name` | 是 | 信号名 |
+| `width` | 是 | 位宽 |
+| `direction` | 是 | 方向：`in`/`out`/`inout` |
 
 ### 3.3 模块定义（blocks）
 
@@ -211,6 +226,27 @@ blocks:
         width: 32
 ```
 
+**blocks 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `id` | 是 | 模块唯一标识 |
+| `type` | 是 | 类型：`top`/`module`/`func` |
+| `label` | 否 | 显示名称 |
+| `nodes` | 否 | 内部图元列表 |
+| `conns` | 否 | 内部连接列表 |
+
+**node 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `id` | 是 | 图元唯一标识 |
+| `type` | 是 | 类型：`mux`/`arbiter`/`fifo`/`inst` |
+| `block` | 条件 | `type: inst` 时必需，引用的 block id |
+| `inputs` | 条件 | `type: mux` 时可选，输入路数 |
+| `masters` | 条件 | `type: arbiter` 时可选，主设备数 |
+| `depth` | 条件 | `type: fifo` 时可选，队列深度 |
+
 ### 3.4 顶层实例（root）
 
 type: top 的 block 自动作为设计根节点，无需额外 root 声明。
@@ -255,7 +291,39 @@ conns:
 
 ## 4. 标注层（可选）
 
+标注层统一放在 `annotations` 下：
+
+```yaml
+annotations:
+  pipeline: {}
+  highlight: []
+  notes: []
+```
+
 ### 4.1 流水线阶段标注（pipeline）
+
+**pipeline 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `name` | 是 | 流水线名称 |
+| `stages` | 是 | 阶段列表 |
+| `registers` | 否 | 寄存器列表 |
+
+**stage 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `name` | 是 | 阶段标识（如 IF、ID、EX） |
+| `label` | 否 | 显示名称 |
+| `nodes` | 是 | 该阶段包含的 node id 列表 |
+
+**register 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `between` | 是 | 相邻阶段名列表，如 `[IF, ID]` |
+| `label` | 否 | 寄存器显示名称 |
 
 ```yaml
 pipeline:
@@ -277,6 +345,19 @@ pipeline:
 ```
 
 ### 4.2 高亮标注（highlight）
+
+**highlight 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `type` | 是 | 类型：`path`/`range` |
+| `name` | 是 | 高亮名称 |
+| `targets` | 是 | 目标 id 列表 |
+| `color` | 否 | 颜色 |
+| `style` | 否 | 样式：`thick`/`dashed` 等 |
+| `label` | 否 | 显示标签 |
+| `delay` | 否 | 延迟标注 |
+| `opacity` | 否 | 透明度（0-1） |
 
 | 类型 | targets 要求 | 用途 |
 |------|-------------|------|
@@ -302,6 +383,15 @@ highlight:
 ```
 
 ### 4.3 文本注释（notes）
+
+**notes 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `type` | 是 | 类型：`note` |
+| `target` | 是 | 目标 node id 或 conn id |
+| `text` | 是 | 注释文本 |
+| `anchor` | 否 | 锚点位置：`top`/`bottom`/`left`/`right` |
 
 ```yaml
 notes:
