@@ -179,7 +179,7 @@ interfaces:
 
 | 字段 | 类型 | 必需 | 说明 |
 |------|------|------|------|
-| `id` | string | 是 | 图元唯一标识 |
+| `id`（作为 key） | string | 是 | 图元唯一标识 |
 | `type` | string | 是 | 类型：`mux`/`arbiter`/`fifo`/`inst` |
 | `block` | string | 条件 | `type: inst` 时必需，引用的 block id |
 | `inputs` | number | 条件 | `type: mux` 时可选，输入路数 |
