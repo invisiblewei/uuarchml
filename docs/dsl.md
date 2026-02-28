@@ -1,20 +1,14 @@
 # uuarchml DSL 规范 v0.6
 
-> **TL;DR** - 5种 node 类型，3种 block 类型，支持端口连接和分层标注
+> **TL;DR** — 架构意图驱动的制图 DSL。采用"逻辑拓扑 + 视觉标注"分离模式，支持通过虚拟锚点（Virtual Anchors）定义非物理连接位置。不用于 RTL 生成，旨在通过结构化表达实现芯片架构的快速可视化与人机设计对齐。
 
 ## 应用场景
 
-**适用**：
-- AI 设计芯片结构时表达设计意图
-- 绘制设计框图，与人沟通对齐
-- 文档中的图示补充，配合文字描述
+**适用**：AI 设计芯片结构时表达设计意图，绘制设计框图与人沟通对齐，作为文档中的图示补充。
 
-**范围**：不限于完整芯片，可以是子系统、模块或小功能特性
+**范围**：不限于完整芯片，可以是子系统、模块或小功能特性。
 
-**不适用**：
-- 精确时序分析
-- RTL 代码生成
-- 物理布局设计
+**不适用**：精确时序分析、RTL 代码生成、物理布局设计。
 
 ```yaml
 name: my_design
@@ -22,8 +16,8 @@ blocks:
   top:
     type: top
     nodes:
-      alu: { type: inst }
-      sel: { type: mux, inputs: 2 }
+      alu: { type: inst }              # 通用功能方框
+      sel: { type: mux, inputs: 2 }    # 2 输入选择器
     conns:
       - from: sel:out, to: alu:in0, sig: operand
 ```
@@ -54,35 +48,35 @@ annotations: { pipeline, highlight, notes }  # 可选：标注
 
 ### 2.2 Node 类型（5种）
 
-| 类型 | 参数 | 省略端口 |
-|------|------|----------|
-| `mux` | `inputs: n` | `in0~in{n-1}`, `out`, `sel` |
-| `arbiter` | `masters: n` | `req0~req{n-1}`, `grant0~grant{n-1}` |
-| `fifo` | `depth: n` | `enq`, `deq`, `full`, `empty` |
-| `reg` | - | `in`, `out`, `en`, `rst` |
-| `inst` | `block: id`（可省略）| 由 block 定义决定 |
+| 类型 | 参数 | 说明 |
+|------|------|------|
+| `inst` | `block: id`（可省略）| 省略时渲染为通用方框 |
+| `reg` | - | 寄存器符号 |
+| `mux` | `inputs: n` | 多路选择器 |
+| `arbiter` | `masters: n` | 仲裁器 |
+| `fifo` | `depth: n` | 先进先出队列 |
 
 **Node 定义格式**：`{node_id}: { type, ...params }`
 
 ```yaml
 nodes:
-  alu: { type: inst }              # block 省略，默认为 alu
+  alu: { type: inst }              # 通用方框
   sel: { type: mux, inputs: 2 }    # 2 输入选择器
   buf: { type: fifo, depth: 4 }   # 深度 4 的 FIFO
 ```
 
 ---
 
-## 3. 连接（conns）
+## 3. 连接与端口语法
 
 ### 3.1 连接格式
 
 ```yaml
 conns:
-  # 基础连接
+  # 基础连接（简洁表达）
   - from: node_id, to: node_id, sig: signal_name
   
-  # 端口连接（可视化到指定位置）
+  # 端口连接（创建虚拟锚点）
   - from: node:port, to: node:port, sig: name
   
   # 跨层级（路径语法）
@@ -92,21 +86,23 @@ conns:
   - id: conn_name, from: a, to: b, sig: name, width: 32
 ```
 
-### 3.2 端口语法
+### 3.2 端口与连线规则
 
-| 语法 | 含义 | 示例 |
-|------|------|------|
-| `node` | 省略端口 | `alu` → 省略端口，按 sig name 匹配 |
-| `node:port` | 指定端口 | `mux1:sel` → mux1 的 sel 端口 |
-| `block.node` | 跨层级 | `fetch.pc` → fetch block 内的 pc |
+| 语法 | 制图表现 | 应用场景 |
+|------|----------|----------|
+| `node` | 连线直接指向节点边缘中心，不绘制端口锚点 | 简洁表达 |
+| `node:port` | 在节点边缘创建虚拟锚点并标注端口名 | 区分连接位置 |
+| `block.node` | 连线穿透 Block 边界指向内部节点 | 跨层级路径 |
 
-**端口省略逻辑**：跨层连接时，若省略端口，可用 sig name 作为端口名匹配。
+**隐式表达原则**：连线时不强制匹配物理端口，以最简洁的线对框形式呈现。
+
+**临时端口**：`node:any_name` 中的 `any_name` 无需预先声明，仅作为位置占位引导。
 
 ### 3.3 连接字段
 
 | 字段 | 类型 | 必需 | 说明 |
 |------|------|------|------|
-| `from` | string | 是 | 源：node / node:port / block.node |
+| `from` | string | 是 | 源：`node` / `node:port` / `block.node` |
 | `to` | string | 是 | 目标：同上 |
 | `sig` | string | 条件 | 信号名（与 interface 二选一）|
 | `interface` | string | 条件 | 引用预定义接口 |
@@ -119,7 +115,7 @@ conns:
 
 ```yaml
 interfaces:
-  axi4_if:                       # interface name
+  axi4_if:                       # interface id
     label: "AXI4"               # 可选：显示名称
     signals:                     # 可选：可酌情省略
       - { name: awaddr, width: 32, direction: out }
@@ -138,17 +134,20 @@ interfaces:
 
 ## 5. 标注层（annotations）
 
-### 5.1 Pipeline（流水线）
+### 5.1 Pipeline（流水线标注）
+
+`pipeline` 下的内容属于视觉覆盖层，不参与逻辑拓扑构建。
 
 ```yaml
 annotations:
   pipeline:
-    name: main
+    name: main_pipe
     stages:
-      - { name: IF, label: "Fetch", nodes: [fetch, pc] }
-      - { name: EX, label: "Execute", nodes: [alu] }
+      - { name: IF, nodes: [fetch] }
+      - { name: EX, nodes: [alu] }
+    # registers 作为阶段间的视觉辅助线
     registers:
-      - { between: [IF, EX], label: "IF/EX" }
+      - { between: [IF, EX], label: "IF/EX_Boundary" }
 ```
 
 ### 5.2 Highlight（高亮）
@@ -194,6 +193,8 @@ annotations:
     stages:
       - { name: IF, nodes: [fetch] }
       - { name: EX, nodes: [alu] }
+    registers:
+      - { between: [IF, EX], label: "IF/EX" }
 ```
 
 ---
@@ -205,42 +206,57 @@ annotations:
 ```yaml
 nodes:
   exe: { type: inst }
-  mem: { type: inst }
-  sel: { type: mux, inputs: 3 }   # 3 输入选择旁路
+  sel: { type: mux, inputs: 2 }
 conns:
-  - from: exe
-    to: sel:in0
-    sig: bypass_exe  # EX→EX 旁路
-  - from: mem
-    to: sel:in1
-    sig: bypass_mem  # MEM→EX 旁路
+  # 使用 in0/in1 区分连接位置
+  - from: exe, to: sel:in0, sig: bypass_path
+  - from: mem_sys, to: sel:in1, sig: mem_data
 ```
 
 ### 7.2 内存仲裁
 
 ```yaml
 nodes:
-  imem: { type: inst, block: mem_port }
-  dmem: { type: inst, block: mem_port }
+  imem: { type: inst }
+  dmem: { type: inst }
   arb: { type: arbiter, masters: 2 }
 conns:
-  - from: imem
-    to: arb:req0
-    interface: axi4_if
-  - from: dmem
-    to: arb:req1
-    interface: axi4_if
+  # 使用虚拟端口 req_i/req_d 增加可读性
+  - from: imem, to: arb:req_i, interface: axi4_if
+  - from: dmem, to: arb:req_d, interface: axi4_if
+```
+
+### 7.3 Func 与 Module 转换
+
+module 和 func 可通过添加/移除 conn 低成本转换：
+
+```yaml
+# func: 仅内部使用
+blocks:
+  alu_func:
+    type: func
+    nodes:
+      alu: { type: inst }
+
+# module: 添加外部连接后变为全局可复用
+blocks:
+  alu_module:
+    type: module
+    nodes:
+      alu: { type: inst }
+    conns:
+      - from: alu, to: external, sig: result
 ```
 
 ---
 
 ## 8. 设计原则
 
-1. **简洁表达**：省略冗余信息，如 inst 的 block 与 node id 一致时可省略
-2. **分层引用**：用 `block.node` 跨层级，用 `node:port` 精确连接
-3. **标注分离**：核心结构（blocks/nodes/conns）与标注（annotations）分离
-4. **按需细化**：文档中可补充详细说明，DSL 仅保留设计表达必要信息
+1. **简洁表达**：按需省略，降低描述开销
+2. **分层引用**：用 `block.node` 跨层级，用 `node:port` 精确定位
+3. **视图分离**：拓扑结构与视觉标注分离，标注不改变底层模型
+4. **模型自洽**：确保连接、节点与标注语义一致
 
 ---
 
-*版本: 0.6.0 | 规范更新日期: 2026-02-28*
+*版本: 0.6.1 | 规范更新日期: 2026-02-28*

@@ -4,7 +4,7 @@
 
 **uuarchml** 是一个芯片微架构可视化工具，用于**模块设计早期**的架构对齐。在 RTL 代码撰写前，帮助 AI 和人快速理解并达成共识。
 
-- **版本**: 0.6.0
+- **版本**: 0.6.1
 - **技术栈**: TypeScript + Vite + SVG 渲染
 - **DSL**: YAML 定义芯片架构
 
@@ -23,13 +23,15 @@
 | **block** | 设计单元，分 top/module/func 三种 |
 | **node** | block 内部的图元实例 (mux/arbiter/fifo/reg/inst) |
 | **conns** | 连接定义 |
+| **虚拟锚点** | 通过 `node:port` 语法创建的图示位置标记 |
 
 ## 项目结构
 
 ```
 uuarchml/
 ├── docs/
-│   ├── DESIGN.md          # YAML DSL 规范 v0.6
+│   ├── dsl.md             # YAML DSL 规范 v0.6.1
+│   ├── DESIGN.md          # 设计文档
 │   └── STYLE_GUIDE.md     # 视觉规范
 ├── examples/
 │   └── riscv-style-demo.html
@@ -68,7 +70,7 @@ npm run lint
 ### 文件结构
 
 ```yaml
-chip: riscv_cpu
+name: riscv_cpu
 
 metadata:
   version: "1.0"
@@ -106,18 +108,26 @@ annotations:
 | **mux** | 多路选择器 | `inputs: 3` |
 | **arbiter** | 仲裁器 | `masters: 2` |
 | **fifo** | 队列 | `depth: 4` |
-| **inst** | 实例化 block | `block: fetch`（与 node id 一致时可省略） |
+| **inst** | 实例化 block | `block: fetch`（可省略） |
 | **reg** | 寄存器 | - |
+
+### 端口语法
+
+| 语法 | 说明 |
+|------|------|
+| `node` | 简洁表达，不绘制端口锚点 |
+| `node:port` | 创建虚拟锚点，区分连接位置 |
+| `block.node` | 跨层级路径 |
 
 ## 重要文档
 
-- [DESIGN.md](docs/DESIGN.md) - YAML DSL 规范 v0.6
+- [dsl.md](docs/dsl.md) - YAML DSL 规范 v0.6.1
 - [STYLE_GUIDE.md](docs/STYLE_GUIDE.md) - 视觉规范
 
 ## 里程碑
 
 ### Phase 1: MVP
-- [x] YAML DSL 设计 v0.6
+- [x] YAML DSL 设计 v0.6.1
 - [ ] YAML 解析器（js-yaml）
 - [ ] 基础布局引擎（网格 + 流水线）
 - [ ] 4种基础图元 + inst 渲染
@@ -135,7 +145,7 @@ annotations:
 
 ## 注意事项
 
-1. **DSL 版本**: 当前使用 v0.6，注意与旧版本不兼容的变更
+1. **DSL 版本**: 当前使用 v0.6.1
 2. **block 定义格式**: 使用 dict 格式（`block_id:`），不是 list
 3. **interface 定义格式**: 使用 dict 格式（`interface_id:`），不是 list
 4. **标注层**: 统一放在 `annotations` 键下
