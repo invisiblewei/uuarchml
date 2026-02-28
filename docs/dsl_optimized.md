@@ -1,22 +1,6 @@
-# uuarchml DSL 规范 v0.6
+# uuarchml DSL v0.6
 
-> **TL;DR** - 5种 node 类型，3种 block 类型，支持端口连接和分层标注
-
-```yaml
-chip: my_design
-blocks:
-  top:
-    type: top
-    nodes:
-      alu: { type: inst }
-      sel: { type: mux, inputs: 2 }
-    conns:
-      - from: sel:out, to: alu:in0, sig: operand
-```
-
----
-
-## 1. 文件结构
+## 文件结构
 
 ```yaml
 chip: string                    # 必需：设计名称
@@ -26,11 +10,7 @@ blocks: { [id]: {...} }         # 必需：模块定义
 annotations: { pipeline, highlight, notes }  # 可选：标注
 ```
 
----
-
-## 2. 核心类型速查
-
-### 2.1 Block 类型
+## Block 类型
 
 | 类型 | 用途 | 特性 |
 |------|------|------|
@@ -38,7 +18,7 @@ annotations: { pipeline, highlight, notes }  # 可选：标注
 | `module` | 可复用模块 | 全局可实例化 |
 | `func` | 内部功能块 | 仅当前 block 内使用 |
 
-### 2.2 Node 类型（5种）
+## Node 类型（5种）
 
 | 类型 | 参数 | 默认端口 |
 |------|------|----------|
@@ -48,7 +28,7 @@ annotations: { pipeline, highlight, notes }  # 可选：标注
 | `reg` | - | `in`, `out`, `en`, `rst` |
 | `inst` | `block: id`（可省略）| 由 block 定义决定 |
 
-**Node 定义格式**：`{node_id}: { type, ...params }`
+**Node 定义**：`{node_id}: { type, ...params }`
 
 ```yaml
 nodes:
@@ -57,18 +37,14 @@ nodes:
   buf: { type: fifo, depth: 4 }   # 深度 4 的 FIFO
 ```
 
----
-
-## 3. 连接（conns）
-
-### 3.1 连接格式
+## 连接（conns）
 
 ```yaml
 conns:
   # 基础连接
   - from: node_id, to: node_id, sig: signal_name
   
-  # 端口连接（可视化到指定位置）
+  # 端口连接
   - from: node:port, to: node:port, sig: name
   
   # 跨层级（路径语法）
@@ -78,7 +54,7 @@ conns:
   - id: conn_name, from: a, to: b, sig: name, width: 32
 ```
 
-### 3.2 端口语法
+### 端口语法
 
 | 语法 | 含义 | 示例 |
 |------|------|------|
@@ -86,7 +62,7 @@ conns:
 | `node:port` | 指定端口 | `mux1:sel` → mux1 的 sel 端口 |
 | `block.node` | 跨层级 | `fetch.pc` → fetch block 内的 pc |
 
-### 3.3 连接字段
+### 连接字段
 
 | 字段 | 类型 | 必需 | 说明 |
 |------|------|------|------|
@@ -97,14 +73,12 @@ conns:
 | `width` | number | 否 | 位宽 |
 | `id` | string | 否 | 用于 highlight 引用 |
 
----
-
-## 4. 接口定义（interfaces）
+## 接口定义（interfaces）
 
 ```yaml
 interfaces:
-  axi4_if:                       # id 作为 key
-    label: "AXI4"               # 可选：显示名称
+  axi4_if:
+    label: "AXI4"
     signals:
       - { name: awaddr, width: 32, direction: out }
       - { name: rdata, width: 32, direction: in }
@@ -112,11 +86,9 @@ interfaces:
 
 **Signal 字段**：`name` (string), `width` (number), `direction` (in/out/inout)
 
----
+## 标注层（annotations）
 
-## 5. 标注层（annotations）
-
-### 5.1 Pipeline（流水线）
+### Pipeline
 
 ```yaml
 annotations:
@@ -129,7 +101,7 @@ annotations:
       - { between: [IF, EX], label: "IF/EX" }
 ```
 
-### 5.2 Highlight（高亮）
+### Highlight
 
 ```yaml
 highlight:
@@ -141,16 +113,14 @@ highlight:
     label: "~800ps"
 ```
 
-### 5.3 Notes（注释）
+### Notes
 
 ```yaml
 notes:
   - { type: note, target: node_id, text: "注释", anchor: bottom }
 ```
 
----
-
-## 6. 完整最小示例
+## 完整示例
 
 ```yaml
 chip: demo_cpu
@@ -174,37 +144,7 @@ annotations:
       - { name: EX, nodes: [alu] }
 ```
 
----
-
-## 7. 常见模式
-
-### 7.1 旁路网络（Bypass）
-
-```yaml
-nodes:
-  exe: { type: inst }
-  mem: { type: inst }
-  sel: { type: mux, inputs: 3 }   # 3 输入选择旁路
-conns:
-  - from: exe, to: sel:in0, sig: bypass_exe  # EX→EX 旁路
-  - from: mem, to: sel:in1, sig: bypass_mem  # MEM→EX 旁路
-```
-
-### 7.2 内存仲裁
-
-```yaml
-nodes:
-  imem: { type: inst, block: mem_port }
-  dmem: { type: inst, block: mem_port }
-  arb: { type: arbiter, masters: 2 }
-conns:
-  - from: imem, to: arb:req0, interface: axi4_if
-  - from: dmem, to: arb:req1, interface: axi4_if
-```
-
----
-
-## 8. 设计原则
+## 设计原则
 
 1. **id 作为 key**：blocks、nodes、interfaces 都用 dict，id 是 key
 2. **省略即默认**：`inst` 的 block 与 node id 一致时可省略
@@ -213,4 +153,4 @@ conns:
 
 ---
 
-*版本: 0.6.0 | 规范更新日期: 2026-02-28*
+*版本: 0.6.0 | 更新日期: 2026-02-28*
