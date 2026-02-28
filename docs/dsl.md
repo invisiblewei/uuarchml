@@ -1,6 +1,6 @@
 # uuarchml DSL 规范 v0.6
 
-> **TL;DR** — 架构意图驱动的制图 DSL。采用"逻辑拓扑 + 视觉标注"分离模式，支持通过虚拟锚点（Virtual Anchors）定义非物理连接位置。不用于 RTL 生成，旨在通过结构化表达实现芯片架构的快速可视化与人机设计对齐。
+> **TL;DR** — 架构意图驱动的制图 DSL，用于芯片设计框图的快速可视化表达。
 
 ## 应用场景
 
@@ -43,8 +43,8 @@ annotations: { pipeline, highlight, notes }  # 可选：标注
 | 类型 | 用途 | 特性 |
 |------|------|------|
 | `top` | 根节点 | 唯一入口，自动作为 root |
-| `module` | 可复用模块 | 全局可实例化，可通过 conn 低成本转换为 func |
-| `func` | 内部功能块 | 仅当前 block 内使用，可通过 conn 低成本转换为 module |
+| `module` | 可复用模块 | 全局可实例化 |
+| `func` | 内部功能块 | 仅当前 block 内使用 |
 
 ### 2.2 Node 类型（5种）
 
@@ -201,7 +201,9 @@ annotations:
 
 ## 7. 常见模式
 
-### 7.1 旁路网络（Bypass）
+### 7.1 旁路网络（Bypass）- 利用虚拟端口
+
+**修订说明**：展示如何利用虚拟端口区分位置而不依赖硬件映射。
 
 ```yaml
 nodes:
@@ -228,17 +230,19 @@ conns:
 
 ### 7.3 Func 与 Module 转换
 
-module 和 func 可通过添加/移除 conn 低成本转换：
+通过添加 `conn` 低成本转换：
 
 ```yaml
-# func: 仅内部使用
+# 原 func 定义（带内部连接）
 blocks:
   alu_func:
     type: func
     nodes:
       alu: { type: inst }
+    conns:
+      - from: alu, to: internal, sig: result
 
-# module: 添加外部连接后变为全局可复用
+# 转换为 module（添加外部连接）
 blocks:
   alu_module:
     type: module
