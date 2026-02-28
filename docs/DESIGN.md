@@ -131,9 +131,25 @@ annotations:
 
 预声明的信号组，用于复杂协议或总线。
 
+**interfaces 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `id`（作为 key） | 是 | 接口唯一标识 |
+| `label` | 否 | 显示名称 |
+| `signals` | 是 | 信号列表 |
+
+**signal 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `name` | 是 | 信号名 |
+| `width` | 是 | 位宽 |
+| `direction` | 是 | 方向：`in`/`out`/`inout` |
+
 ```yaml
 interfaces:
-  - id: axi4_if
+  axi4_if:
     label: "AXI4"
     signals:
       - name: awaddr
@@ -147,29 +163,34 @@ interfaces:
         direction: in
 ```
 
-**interfaces 字段说明**:
-
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `id` | 是 | 接口唯一标识 |
-| `label` | 否 | 显示名称 |
-| `signals` | 是 | 信号列表 |
-
-**signal 字段说明**:
-
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `name` | 是 | 信号名 |
-| `width` | 是 | 位宽 |
-| `direction` | 是 | 方向：`in`/`out`/`inout` |
-
 ### 3.3 模块定义（blocks）
+
+**blocks 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `id`（作为 key） | 是 | 模块唯一标识 |
+| `type` | 是 | 类型：`top`/`module`/`func` |
+| `label` | 否 | 显示名称 |
+| `nodes` | 否 | 内部图元列表 |
+| `conns` | 否 | 内部连接列表 |
+
+**node 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `id` | 是 | 图元唯一标识 |
+| `type` | 是 | 类型：`mux`/`arbiter`/`fifo`/`inst` |
+| `block` | 条件 | `type: inst` 时必需，引用的 block id |
+| `inputs` | 条件 | `type: mux` 时可选，输入路数 |
+| `masters` | 条件 | `type: arbiter` 时可选，主设备数 |
+| `depth` | 条件 | `type: fifo` 时可选，队列深度 |
 
 #### type: top — 根节点
 
 ```yaml
 blocks:
-  - id: riscv_top
+  riscv_top:
     type: top
     label: "RISC-V CPU"
     nodes:
@@ -192,7 +213,7 @@ blocks:
 
 ```yaml
 blocks:
-  - id: fetch
+  fetch:
     type: module
     label: "Fetch Unit"
     nodes:
@@ -201,7 +222,7 @@ blocks:
         block: pc_reg
     conns:
       - from: pc_reg
-        to: imem_if
+        to: imem_port
         sig: pc
 ```
 
@@ -209,7 +230,7 @@ blocks:
 
 ```yaml
 blocks:
-  - id: alu
+  alu:
     type: func
     label: "ALU Core"
     nodes:
@@ -226,27 +247,6 @@ blocks:
         width: 32
 ```
 
-**blocks 字段说明**:
-
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `id` | 是 | 模块唯一标识 |
-| `type` | 是 | 类型：`top`/`module`/`func` |
-| `label` | 否 | 显示名称 |
-| `nodes` | 否 | 内部图元列表 |
-| `conns` | 否 | 内部连接列表 |
-
-**node 字段说明**:
-
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `id` | 是 | 图元唯一标识 |
-| `type` | 是 | 类型：`mux`/`arbiter`/`fifo`/`inst` |
-| `block` | 条件 | `type: inst` 时必需，引用的 block id |
-| `inputs` | 条件 | `type: mux` 时可选，输入路数 |
-| `masters` | 条件 | `type: arbiter` 时可选，主设备数 |
-| `depth` | 条件 | `type: fifo` 时可选，队列深度 |
-
 ### 3.4 顶层实例（root）
 
 type: top 的 block 自动作为设计根节点，无需额外 root 声明。
@@ -254,6 +254,19 @@ type: top 的 block 自动作为设计根节点，无需额外 root 声明。
 ### 3.5 连接定义（conns）
 
 三种 block 类型（top/module/func）都支持相同的连接方式。
+
+**conns 字段说明**:
+
+| 字段 | 必需 | 说明 |
+|------|------|------|
+| `id` | 否 | 可选，用于标注引用 |
+| `from` | 是 | node id 或路径（如 `block.node`） |
+| `to` | 是 | node id 或路径（如 `block.node`） |
+| `interface` | 条件 | 引用预声明的 interface |
+| `sig` | 条件 | 单信号名 |
+| `name` | 否 | interface 实例名 |
+| `width` | 否 | 位宽 |
+| `type` | 否 | 信号类型 |
 
 ```yaml
 conns:
@@ -277,15 +290,6 @@ conns:
     to: decode
     sig: pc_plus4
 ```
-
-**字段说明**:
-- `id`: 可选，用于标注引用
-- `from`, `to`: 必需，node id 或路径（如 `block.node`）
-- `interface`: 引用预声明的 interface
-- `sig`: 单信号名
-- `name`: interface 实例名
-- `width`: 位宽
-- `type`: 信号类型
 
 ---
 
@@ -422,7 +426,7 @@ metadata:
 # ═══════════════════════════════════════════════════
 
 interfaces:
-  - id: axi4_if
+  axi4_if:
     label: "AXI4"
     signals:
       - name: awaddr
@@ -441,7 +445,7 @@ interfaces:
 
 blocks:
   # ── 根节点 ──
-  - id: riscv_top
+  riscv_top:
     type: top
     label: "RISC-V CPU"
     nodes:
@@ -449,9 +453,9 @@ blocks:
       - id: pc_reg
         type: inst
         block: pc_reg
-      - id: imem_if
-        type: interface
-        interface: axi4_if
+      - id: imem_port
+        type: inst
+        block: mem_port
 
       # ID Stage
       - id: decode
@@ -479,9 +483,9 @@ blocks:
       - id: mem_arb
         type: arbiter
         masters: 2
-      - id: dmem_if
-        type: interface
-        interface: axi4_if
+      - id: dmem_port
+        type: inst
+        block: mem_port
 
       # WB Stage
       - id: writeback
@@ -491,11 +495,11 @@ blocks:
     conns:
       # IF → ID
       - from: pc_reg
-        to: imem_if
+        to: imem_port
         sig: pc
         width: 32
 
-      - from: imem_if
+      - from: imem_port
         to: decode
         interface: axi4_if
         name: instr_fetch
@@ -539,7 +543,7 @@ blocks:
         type: data
 
       - from: memory
-        to: dmem_if
+        to: dmem_port
         interface: axi4_if
         name: data_access
 
@@ -587,56 +591,62 @@ blocks:
         type: bypass
 
       # 内存仲裁
-      - from: imem_if
+      - from: imem_port
         to: mem_arb
         interface: axi4_if
         name: if_req
 
-      - from: dmem_if
+      - from: dmem_port
         to: mem_arb
         interface: axi4_if
         name: lsu_req
 
   # ── 可复用模块 ──
-  - id: fetch
+  fetch:
     type: module
     label: "Fetch Unit"
     nodes: []
     conns: []
 
-  - id: decode
+  decode:
     type: module
     label: "Decode Unit"
     nodes: []
     conns: []
 
-  - id: execute
+  execute:
     type: module
     label: "Execute Unit"
     nodes: []
     conns: []
 
-  - id: memory
+  memory:
     type: module
     label: "Memory Unit"
     nodes: []
     conns: []
 
-  - id: writeback
+  writeback:
     type: module
     label: "Writeback Unit"
     nodes: []
     conns: []
 
-  - id: regfile
+  regfile:
     type: module
     label: "Register File"
     nodes: []
     conns: []
 
-  - id: pc_reg
+  pc_reg:
     type: module
     label: "PC Register"
+    nodes: []
+    conns: []
+
+  mem_port:
+    type: module
+    label: "Memory Port"
     nodes: []
     conns: []
 
@@ -650,7 +660,7 @@ annotations:
     stages:
       - name: IF
         label: "Instruction Fetch"
-        nodes: [pc_reg, imem_if]
+        nodes: [pc_reg, imem_port]
       - name: ID
         label: "Decode"
         nodes: [decode, regfile]
@@ -659,7 +669,7 @@ annotations:
         nodes: [op1_sel, op2_sel, execute]
       - name: MEM
         label: "Memory"
-        nodes: [memory, mem_arb, dmem_if]
+        nodes: [memory, mem_arb, dmem_port]
       - name: WB
         label: "Write Back"
         nodes: [writeback]
