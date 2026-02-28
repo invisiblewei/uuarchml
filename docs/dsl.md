@@ -2,8 +2,22 @@
 
 > **TL;DR** - 5种 node 类型，3种 block 类型，支持端口连接和分层标注
 
+## 应用场景
+
+**适用**：
+- AI 设计芯片结构时表达设计意图
+- 绘制设计框图，与人沟通对齐
+- 文档中的图示补充，配合文字描述
+
+**范围**：不限于完整芯片，可以是子系统、模块或小功能特性
+
+**不适用**：
+- 精确时序分析
+- RTL 代码生成
+- 物理布局设计
+
 ```yaml
-chip: my_design
+name: my_design
 blocks:
   top:
     type: top
@@ -19,7 +33,7 @@ blocks:
 ## 1. 文件结构
 
 ```yaml
-chip: string                    # 必需：设计名称
+name: string                    # 必需：设计名称
 metadata: { version, description }  # 可选
 interfaces: { [id]: {...} }     # 可选：全局接口定义
 blocks: { [id]: {...} }         # 必需：模块定义
@@ -82,9 +96,11 @@ conns:
 
 | 语法 | 含义 | 示例 |
 |------|------|------|
-| `node` | 默认端口 | `alu` → alu 的默认端口 |
+| `node` | 省略端口 | `alu` → 省略端口，按 sig name 匹配 |
 | `node:port` | 指定端口 | `mux1:sel` → mux1 的 sel 端口 |
 | `block.node` | 跨层级 | `fetch.pc` → fetch block 内的 pc |
+
+**端口省略逻辑**：跨层连接时，若省略端口，可用 sig name 作为端口名匹配。
 
 ### 3.3 连接字段
 
@@ -103,7 +119,7 @@ conns:
 
 ```yaml
 interfaces:
-  axi4_if:                       # id 作为 key
+  axi4_if:                       # interface name
     label: "AXI4"               # 可选：显示名称
     signals:
       - { name: awaddr, width: 32, direction: out }
@@ -153,7 +169,7 @@ notes:
 ## 6. 完整最小示例
 
 ```yaml
-chip: demo_cpu
+name: demo_cpu
 blocks:
   cpu:
     type: top
@@ -186,8 +202,12 @@ nodes:
   mem: { type: inst }
   sel: { type: mux, inputs: 3 }   # 3 输入选择旁路
 conns:
-  - from: exe, to: sel:in0, sig: bypass_exe  # EX→EX 旁路
-  - from: mem, to: sel:in1, sig: bypass_mem  # MEM→EX 旁路
+  - from: exe
+    to: sel:in0
+    sig: bypass_exe  # EX→EX 旁路
+  - from: mem
+    to: sel:in1
+    sig: bypass_mem  # MEM→EX 旁路
 ```
 
 ### 7.2 内存仲裁
@@ -198,18 +218,22 @@ nodes:
   dmem: { type: inst, block: mem_port }
   arb: { type: arbiter, masters: 2 }
 conns:
-  - from: imem, to: arb:req0, interface: axi4_if
-  - from: dmem, to: arb:req1, interface: axi4_if
+  - from: imem
+    to: arb:req0
+    interface: axi4_if
+  - from: dmem
+    to: arb:req1
+    interface: axi4_if
 ```
 
 ---
 
 ## 8. 设计原则
 
-1. **id 作为 key**：blocks、nodes、interfaces 都用 dict，id 是 key
-2. **省略即默认**：`inst` 的 block 与 node id 一致时可省略
-3. **分层引用**：用 `block.node` 跨层级，用 `node:port` 精确连接
-4. **标注分离**：核心结构（blocks/nodes/conns）与标注（annotations）分离
+1. **简洁表达**：省略冗余信息，如 inst 的 block 与 node id 一致时可省略
+2. **分层引用**：用 `block.node` 跨层级，用 `node:port` 精确连接
+3. **标注分离**：核心结构（blocks/nodes/conns）与标注（annotations）分离
+4. **按需细化**：文档中可补充详细说明，DSL 仅保留设计表达必要信息
 
 ---
 
