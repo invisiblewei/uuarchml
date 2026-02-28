@@ -194,13 +194,13 @@ blocks:
     type: top
     label: "RISC-V CPU"
     nodes:
-      - id: fetch
+      fetch:
         type: inst
         block: fetch
-      - id: decode
+      decode:
         type: inst
         block: decode
-      - id: op1_sel
+      op1_sel:
         type: mux
         inputs: 3
     conns:
@@ -217,10 +217,10 @@ blocks:
     type: module
     label: "Fetch Unit"
     nodes:
-      - id: pc_reg
+      pc_reg:
         type: inst
         block: pc_reg      # 引用其他 module，无需展开定义
-      - id: imem_port
+      imem_port:
         type: inst
         block: mem_port
     conns:
@@ -237,10 +237,10 @@ blocks:
     type: func
     label: "ALU Core"
     nodes:
-      - id: op1_sel
+      op1_sel:
         type: mux
         inputs: 3
-      - id: adder
+      adder:
         type: inst
         block: adder
     conns:
@@ -453,45 +453,45 @@ blocks:
     label: "RISC-V CPU"
     nodes:
       # IF Stage
-      - id: pc_reg
+      pc_reg:
         type: inst
         block: pc_reg
-      - id: imem_port
+      imem_port:
         type: inst
         block: mem_port
 
       # ID Stage
-      - id: decode
+      decode:
         type: inst
         block: decode
-      - id: regfile
+      regfile:
         type: inst
         block: regfile
 
       # EX Stage
-      - id: op1_sel
+      op1_sel:
         type: mux
         inputs: 3
-      - id: op2_sel
+      op2_sel:
         type: mux
         inputs: 3
-      - id: execute
+      execute:
         type: inst
         block: execute
 
       # MEM Stage
-      - id: memory
+      memory:
         type: inst
         block: memory
-      - id: mem_arb
+      mem_arb:
         type: arbiter
         masters: 2
-      - id: dmem_port
+      dmem_port:
         type: inst
         block: mem_port
 
       # WB Stage
-      - id: writeback
+      writeback:
         type: inst
         block: writeback
 
