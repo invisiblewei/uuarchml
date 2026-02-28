@@ -1,0 +1,748 @@
+# ChipViz 设计文档 v0.6
+
+**版本**: 0.6.0  
+**日期**: 2026-02-26  
+**状态**: 迭代中
+
+---
+
+## 1. 项目目标
+
+ChipViz 是一个芯片微架构可视化工具，用于**模块设计早期**的架构对齐。在 RTL 代码撰写前，帮助 AI 和人快速理解并达成共识。
+
+### 1.1 核心定位
+
+- **阶段**: 模块设计早期（微架构定义阶段）
+- **用户**: 芯片架构师、设计工程师、验证工程师
+- **场景**: 设计评审、方案讨论、文档沉淀、新人培训
+
+### 1.2 明确不做
+
+| 不做 | 原因 |
+|------|------|
+| 交互式编辑 | 静态图足够表达设计意图，降低复杂度 |
+| RTL 代码生成 | 专注可视化，不替代实现 |
+| 精确时序分析 | 仅支持逻辑级数/延迟的粗略估计 |
+| 物理布局 | 不做 floorplan，只做逻辑结构 |
+
+---
+
+## 2. 核心概念
+
+### 2.1 设计哲学
+
+**结构优先，标注分层**
+
+- **核心层**: blocks、interfaces、nodes、conns
+- **标注层**: pipeline、highlight、notes
+
+### 2.2 层级结构
+
+```
+chip
+├── interfaces     # 预声明接口定义（全局）
+│   └── axi4_if
+└── blocks         # 模块/功能块定义
+    ├── top        # type: top，根节点
+    ├── fetch      # type: module，可复用模块
+    └── alu        # type: func，内部功能块
+```
+
+### 2.3 概念定义
+
+| 概念 | 说明 | 示例 |
+|------|------|------|
+| **interface** | 预声明的信号组，用于总线/协议 | AXI4、AHB、自定义总线 |
+| **block** | 设计单元，分 top/module/func 三种 | Fetch、ALU、Decode |
+| **node** | block 内部的图元实例 | mux、arbiter、fifo、inst |
+
+### 2.4 block 类型（3种）
+
+| 类型 | 说明 | 复用性 |
+|------|------|--------|
+| **top** | 根节点，一个设计只有一个 | 不可复用 |
+| **module** | 可复用模块，可被多处实例化 | 全局复用 |
+| **func** | 内部功能块，仅在当前 block 内使用 | 局部使用 |
+
+### 2.5 node 类型（5种）
+
+用于 `nodes` 中的 `type` 字段：
+
+| 类型 | 用途 | 参数 | 端口 |
+|------|------|------|------|
+| **mux** | 多路选择器 | `inputs: 3` | `in0`, `in1`, `in2`... `out`, `sel` |
+| **arbiter** | 仲裁器 | `masters: 2` | `req0`, `req1`... `grant0`, `grant1` |
+| **fifo** | 队列 | `depth: 4` | `enq`, `deq`, `full`, `empty` |
+| **reg** | 寄存器 | - | `in`, `out`, `en`, `rst` |
+| **inst** | 实例化 block | `block: fetch` | 由 block 定义决定 |
+
+---
+
+## 3. YAML DSL 规范 v0.6
+
+### 3.1 文件结构
+
+```yaml
+chip: riscv_cpu
+
+metadata:
+  version: "1.0"
+  description: "5-stage RISC-V CPU"
+
+# 预声明接口（可选）
+interfaces:
+  axi4_if:
+    signals: [...]
+
+# 模块定义
+blocks:
+  top:
+    type: top
+    nodes: [...]
+    conns: [...]
+    
+  fetch:
+    type: module
+    nodes: [...]
+    conns: [...]
+    
+  alu:
+    type: func
+    nodes: [...]
+    conns: [...]
+
+# 标注层（可选）
+annotations:
+  pipeline: {}
+  highlight: []
+  notes: []
+```
+
+**顶层字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `chip` | string | 是 | 芯片/设计名称 |
+| `metadata` | object | 否 | 版本、描述等元信息 |
+| `interfaces` | object | 否 | 预声明接口定义（全局） |
+| `blocks` | object | 是 | 模块/功能块定义列表 |
+| `annotations` | object | 否 | 标注层，包含 pipeline、highlight、notes |
+
+### 3.2 接口定义（interfaces）
+
+预声明的信号组，用于复杂协议或总线。
+
+**interfaces 字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id`（作为 key） | string | 是 | 接口唯一标识 |
+| `label` | string | 否 | 显示名称 |
+| `signals` | array | 是 | 信号列表 |
+
+**signal 字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 信号名 |
+| `width` | number | 是 | 位宽 |
+| `direction` | string | 是 | 方向：`in`/`out`/`inout` |
+
+```yaml
+interfaces:
+  axi4_if:
+    label: "AXI4"
+    signals:
+      - name: awaddr
+        width: 32
+        direction: out
+      - name: wdata
+        width: 32
+        direction: out
+      - name: rdata
+        width: 32
+        direction: in
+```
+
+### 3.3 模块定义（blocks）
+
+**blocks 字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id`（作为 key） | string | 是 | 模块唯一标识 |
+| `type` | string | 是 | 类型：`top`/`module`/`func` |
+| `label` | string | 否 | 显示名称 |
+| `nodes` | array | 否 | 内部图元列表 |
+| `conns` | array | 否 | 内部连接列表 |
+
+**node 字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id`（作为 key） | string | 是 | 图元唯一标识 |
+| `type` | string | 是 | 类型：`mux`/`arbiter`/`fifo`/`inst` |
+| `block` | string | 条件 | `type: inst` 时引用 block id；与 node id 一致时可省略 |
+| `inputs` | number | 条件 | `type: mux` 时可选，输入路数 |
+| `masters` | number | 条件 | `type: arbiter` 时可选，主设备数 |
+| `depth` | number | 条件 | `type: fifo` 时可选，队列深度 |
+
+#### type: top — 根节点
+
+```yaml
+blocks:
+  riscv_top:
+    type: top
+    label: "RISC-V CPU"
+    nodes:
+      fetch:
+        type: inst              # block 省略，默认为 fetch
+      decode:
+        type: inst              # block 省略，默认为 decode
+      op1_sel:
+        type: mux
+        inputs: 3
+    conns:
+      - from: fetch
+        to: decode
+        interface: axi4_if
+```
+
+#### type: module — 可复用模块
+
+```yaml
+blocks:
+  fetch:
+    type: module
+    label: "Fetch Unit"
+    nodes:
+      pc_reg:
+        type: inst      # 引用其他 module，无需展开定义
+      imem_port:
+        type: inst
+        block: mem_port
+    conns:
+      - from: pc_reg
+        to: imem_port
+        sig: pc
+```
+
+#### type: func — 内部功能块
+
+```yaml
+blocks:
+  alu:
+    type: func
+    label: "ALU Core"
+    nodes:
+      op1_sel:
+        type: mux
+        inputs: 3
+      adder:
+        type: inst
+        block: adder
+    conns:
+      - from: op1_sel
+        to: adder
+        sig: operand
+        width: 32
+```
+
+### 3.4 顶层实例（root）
+
+type: top 的 block 自动作为设计根节点，无需额外 root 声明。
+
+### 3.5 连接定义（conns）
+
+三种 block 类型（top/module/func）都支持相同的连接方式。
+
+**conns 字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id` | string | 否 | 可选，用于标注引用 |
+| `from` | string | 是 | node id 或路径（如 `block.node`） |
+| `to` | string | 是 | node id 或路径（如 `block.node`） |
+| `interface` | string | 条件 | 引用预声明的 interface |
+| `sig` | string | 条件 | 单信号名 |
+| `name` | string | 否 | interface 实例名 |
+| `width` | number | 否 | 位宽 |
+| `type` | string | 否 | 信号类型 |
+
+```yaml
+conns:
+  # 通过 interface 连接
+  - id: mem_bus
+    from: fetch
+    to: mem_ctrl
+    interface: axi4_if
+    name: if_req
+
+  # 通过 sig 连接
+  - id: bypass_ex_conn
+    from: execute
+    to: op1_sel
+    sig: bypass_ex
+    width: 32
+    type: bypass
+
+  # 跨层级连接（使用路径表示法）
+  - from: fetch.pc_reg
+    to: decode
+    sig: pc_plus4
+
+  # 连接到指定端口
+  - from: ctrl_unit
+    to: mux1:sel
+    sig: op_sel
+    width: 2
+```
+
+---
+
+## 4. 标注层（可选）
+
+标注层统一放在 `annotations` 下：
+
+```yaml
+annotations:
+  pipeline: {}
+  highlight: []
+  notes: []
+```
+
+### 4.1 流水线阶段标注（pipeline）
+
+**pipeline 字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 流水线名称 |
+| `stages` | array | 是 | 阶段列表 |
+| `registers` | array | 否 | 寄存器列表 |
+
+**stage 字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 阶段标识（如 IF、ID、EX） |
+| `label` | string | 否 | 显示名称 |
+| `nodes` | array | 是 | 该阶段包含的 node id 列表 |
+
+**register 字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `between` | array | 是 | 相邻阶段名列表，如 `[IF, ID]` |
+| `label` | string | 否 | 寄存器显示名称 |
+
+```yaml
+pipeline:
+  name: main
+  stages:
+    - name: IF
+      label: "Instruction Fetch"
+      nodes: [fetch]
+    - name: ID
+      label: "Decode"
+      nodes: [decode]
+    - name: EX
+      label: "Execute"
+      nodes: [op1_sel, execute]
+
+  registers:
+    - between: [IF, ID]
+      label: "IF/ID"
+```
+
+### 4.2 高亮标注（highlight）
+
+**highlight 字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `type` | string | 是 | 类型：`path`/`range` |
+| `name` | string | 是 | 高亮名称 |
+| `targets` | array | 是 | 目标 id 列表 |
+| `color` | string | 否 | 颜色 |
+| `style` | string | 否 | 样式：`thick`/`dashed` 等 |
+| `label` | string | 否 | 显示标签 |
+| `delay` | string | 否 | 延迟标注 |
+| `opacity` | number | 否 | 透明度（0-1） |
+
+| 类型 | targets 要求 | 用途 |
+|------|-------------|------|
+| **path** | conn id 列表 或 node id 列表 | 高亮信号路径。node id 列表如 `[a b c]` 表示 `node a -> node b -> node c` 的路径 |
+| **range** | conn id 或 node id 列表 | 高亮区域 |
+
+```yaml
+highlight:
+  - type: path
+    name: critical_path
+    targets: [bypass_ex_conn]
+    color: red
+    style: thick
+    label: "EX→EX Bypass ~800ps"
+    delay: "~200ps"
+
+  - type: range
+    name: bypass_network
+    targets: [op1_sel, op2_sel, bypass_ex_conn]
+    color: blue
+    opacity: 0.15
+    label: "旁路网络"
+```
+
+### 4.3 文本注释（notes）
+
+**notes 字段说明**:
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `type` | string | 是 | 类型：`note` |
+| `target` | string | 是 | 目标 node id 或 conn id |
+| `text` | string | 是 | 注释文本 |
+| `anchor` | string | 否 | 锚点位置：`top`/`bottom`/`left`/`right` |
+
+```yaml
+notes:
+  - type: note
+    target: mem_arb
+    text: "Round-robin 仲裁"
+    anchor: bottom
+
+  - type: note
+    target: bypass_ex_conn
+    text: "关键路径 ~800ps"
+    anchor: top
+```
+
+---
+
+## 5. 完整示例：RISC-V 五级流水线
+
+```yaml
+chip: riscv_cpu
+
+metadata:
+  version: "1.0"
+  description: "经典 5 级流水线 RISC-V CPU"
+
+# ═══════════════════════════════════════════════════
+# 预声明接口
+# ═══════════════════════════════════════════════════
+
+interfaces:
+  axi4_if:
+    label: "AXI4"
+    signals:
+      - name: awaddr
+        width: 32
+        direction: out
+      - name: wdata
+        width: 32
+        direction: out
+      - name: rdata
+        width: 32
+        direction: in
+
+# ═══════════════════════════════════════════════════
+# 模块定义（含顶层）
+# ═══════════════════════════════════════════════════
+
+blocks:
+  # ── 根节点 ──
+  riscv_top:
+    type: top
+    label: "RISC-V CPU"
+    nodes:
+      # IF Stage
+      pc_reg:
+        type: inst
+      imem_port:
+        type: inst
+        block: mem_port
+
+      # ID Stage
+      decode:
+        type: inst
+      regfile:
+        type: inst
+
+      # EX Stage
+      op1_sel:
+        type: mux
+        inputs: 3
+      op2_sel:
+        type: mux
+        inputs: 3
+      execute:
+        type: inst
+
+      # MEM Stage
+      memory:
+        type: inst
+      mem_arb:
+        type: arbiter
+        masters: 2
+      dmem_port:
+        type: inst
+        block: mem_port
+
+      # WB Stage
+      writeback:
+        type: inst
+
+    conns:
+      # IF → ID
+      - from: pc_reg
+        to: imem_port
+        sig: pc
+        width: 32
+
+      - from: imem_port
+        to: decode
+        interface: axi4_if
+        name: instr_fetch
+
+      - from: decode
+        to: regfile
+        sig: rs_addr
+        width: 10
+        type: control
+
+      # ID → EX
+      - from: regfile
+        to: op1_sel
+        sig: rs1_data
+        width: 32
+        type: data
+
+      - from: regfile
+        to: op2_sel
+        sig: rs2_data
+        width: 32
+        type: data
+
+      - from: op1_sel
+        to: execute
+        sig: operand1
+        width: 32
+        type: data
+
+      - from: op2_sel
+        to: execute
+        sig: operand2
+        width: 32
+        type: data
+
+      # EX → MEM
+      - from: execute
+        to: memory
+        sig: alu_result
+        width: 32
+        type: data
+
+      - from: memory
+        to: dmem_port
+        interface: axi4_if
+        name: data_access
+
+      # MEM → WB
+      - from: memory
+        to: writeback
+        sig: mem_data
+        width: 32
+        type: data
+
+      # WB → ID
+      - from: writeback
+        to: regfile
+        sig: rd_data
+        width: 32
+        type: data
+
+      # 旁路网络
+      - id: bypass_ex_conn
+        from: execute
+        to: op1_sel
+        sig: bypass_ex
+        width: 32
+        type: bypass
+
+      - id: bypass_ex2_conn
+        from: execute
+        to: op2_sel
+        sig: bypass_ex2
+        width: 32
+        type: bypass
+
+      - id: bypass_mem_conn
+        from: memory
+        to: op1_sel
+        sig: bypass_mem
+        width: 32
+        type: bypass
+
+      - id: bypass_mem2_conn
+        from: memory
+        to: op2_sel
+        sig: bypass_mem2
+        width: 32
+        type: bypass
+
+      # 内存仲裁
+      - from: imem_port
+        to: mem_arb
+        interface: axi4_if
+        name: if_req
+
+      - from: dmem_port
+        to: mem_arb
+        interface: axi4_if
+        name: lsu_req
+
+  # ── 可复用模块 ──
+  fetch:
+    type: module
+    label: "Fetch Unit"
+    nodes: []
+    conns: []
+
+  decode:
+    type: module
+    label: "Decode Unit"
+    nodes: []
+    conns: []
+
+  execute:
+    type: module
+    label: "Execute Unit"
+    nodes: []
+    conns: []
+
+  memory:
+    type: module
+    label: "Memory Unit"
+    nodes: []
+    conns: []
+
+  writeback:
+    type: module
+    label: "Writeback Unit"
+    nodes: []
+    conns: []
+
+  regfile:
+    type: module
+    label: "Register File"
+    nodes: []
+    conns: []
+
+  pc_reg:
+    type: module
+    label: "PC Register"
+    nodes: []
+    conns: []
+
+  mem_port:
+    type: module
+    label: "Memory Port"
+    nodes: []
+    conns: []
+
+# ═══════════════════════════════════════════════════
+# 标注层
+# ═══════════════════════════════════════════════════
+
+annotations:
+  pipeline:
+    name: main
+    stages:
+      - name: IF
+        label: "Instruction Fetch"
+        nodes: [pc_reg, imem_port]
+      - name: ID
+        label: "Decode"
+        nodes: [decode, regfile]
+      - name: EX
+        label: "Execute"
+        nodes: [op1_sel, op2_sel, execute]
+      - name: MEM
+        label: "Memory"
+        nodes: [memory, mem_arb, dmem_port]
+      - name: WB
+        label: "Write Back"
+        nodes: [writeback]
+
+    registers:
+      - between: [IF, ID]
+        label: "IF/ID"
+      - between: [ID, EX]
+        label: "ID/EX"
+      - between: [EX, MEM]
+        label: "EX/MEM"
+      - between: [MEM, WB]
+        label: "MEM/WB"
+
+    latency: 5
+
+  highlight:
+    - type: path
+      name: critical_path
+      targets: [bypass_ex_conn]
+      color: red
+      style: thick
+      label: "EX→EX Bypass ~800ps"
+      delay: "~200ps"
+
+    - type: range
+      name: bypass_network
+      targets: [op1_sel, op2_sel, bypass_ex_conn, bypass_ex2_conn, bypass_mem_conn, bypass_mem2_conn]
+      color: blue
+      opacity: 0.15
+      label: "3-to-1 旁路选择器"
+
+  notes:
+    - type: note
+      target: mem_arb
+      text: "Round-robin 仲裁\nIF 优先级更高"
+      anchor: bottom
+```
+
+---
+
+## 6. 输出格式
+
+1. **SVG** — 矢量图，可缩放，可嵌入文档
+2. **PNG** — 位图，方便分享
+3. **Mermaid** — 文本格式，版本控制友好
+
+---
+
+## 7. 技术栈
+
+| 组件 | 技术 | 说明 |
+|------|------|------|
+| DSL | YAML | 简洁、易读、工具生态好 |
+| 解析 | js-yaml | YAML 解析器 |
+| 渲染 | 自定义 SVG | 精确控制流水线布局 |
+| 构建 | Vite | 开发服务器 + 打包 |
+
+---
+
+## 8. 里程碑
+
+见 [AGENTS.md](../AGENTS.md) 里程碑章节
+
+---
+
+## 9. 参考
+
+- **参考图**: 经典计算机体系结构教材 RISC-V datapath 图
+- **Mermaid**: https://mermaid.js.org/
+- **RISC-V Spec**: https://riscv.org/technical/specifications/
+
+---
+
+*本文档随项目迭代更新*
