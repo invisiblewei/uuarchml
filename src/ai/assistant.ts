@@ -132,7 +132,7 @@ ${description}
   generateRTL(design: ChipDesign, target: 'verilog' | 'systemverilog' | 'vhdl' = 'systemverilog'): string {
     const lines: string[] = [];
     
-    lines.push(`// Auto-generated ${target.toUpperCase()} from ChipViz`);
+    lines.push(`// Auto-generated ${target.toUpperCase()} from uuarchml`);
     lines.push(`// Design: ${design.name}`);
     lines.push(`// Generated at: ${new Date().toISOString()}`);
     lines.push('');

@@ -1,4 +1,4 @@
-# ChipViz Style Guide
+# uuarchml Style Guide
 
 **版本**: 0.1.0  
 **日期**: 2026-02-26  
@@ -374,4 +374,4 @@ Legend: [Block]  \Mux/  ◆Arbiter  ─Data  ···Bypass  ═Critical
 
 ---
 
-*本文档定义 ChipViz 的视觉规范，所有渲染实现应遵循此指南。*
+*本文档定义 uuarchml 的视觉规范，所有渲染实现应遵循此指南。*
