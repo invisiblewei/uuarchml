@@ -1,4 +1,4 @@
-# uuarchml 设计文档 v0.6
+# ChipViz 设计文档 v0.6
 
 **版本**: 0.6.0  
 **日期**: 2026-02-26  
@@ -8,7 +8,7 @@
 
 ## 1. 项目目标
 
-**uuarchml** 是一个芯片微架构可视化工具，用于**模块设计早期**的架构对齐。在 RTL 代码撰写前，帮助 AI 和人快速理解并达成共识。
+ChipViz 是一个芯片微架构可视化工具，用于**模块设计早期**的架构对齐。在 RTL 代码撰写前，帮助 AI 和人快速理解并达成共识。
 
 ### 1.1 核心定位
 
@@ -54,7 +54,7 @@ chip
 |------|------|------|
 | **interface** | 预声明的信号组，用于总线/协议 | AXI4、AHB、自定义总线 |
 | **block** | 设计单元，分 top/module/func 三种 | Fetch、ALU、Decode |
-| **node** | block 内部的图元实例 | mux、arbiter、fifo、reg、inst |
+| **node** | block 内部的图元实例 | mux、arbiter、fifo、inst |
 
 ### 2.4 block 类型（3种）
 
@@ -66,6 +66,8 @@ chip
 
 ### 2.5 node 类型（5种）
 
+用于 `nodes` 中的 `type` 字段：
+
 | 类型 | 用途 | 参数 | 端口 |
 |------|------|------|------|
 | **mux** | 多路选择器 | `inputs: 3` | `in0`, `in1`, `in2`... `out`, `sel` |
@@ -76,47 +78,3 @@ chip
 
 ---
 
-## 3. 文档索引
-
-| 文档 | 内容 |
-|------|------|
-| [dsl.md](dsl.md) | YAML DSL 规范 v0.6 |
-| [example.yaml](example.yaml) | RISC-V 五级流水线完整示例 |
-| [STYLE_GUIDE.md](STYLE_GUIDE.md) | 视觉规范 |
-
----
-
-## 4. 输出格式
-
-1. **SVG** — 矢量图，可缩放，可嵌入文档
-2. **PNG** — 位图，方便分享
-3. **Mermaid** — 文本格式，版本控制友好
-
----
-
-## 5. 技术栈
-
-| 组件 | 技术 | 说明 |
-|------|------|------|
-| DSL | YAML | 简洁、易读、工具生态好 |
-| 解析 | js-yaml | YAML 解析器 |
-| 渲染 | 自定义 SVG | 精确控制流水线布局 |
-| 构建 | Vite | 开发服务器 + 打包 |
-
----
-
-## 6. 里程碑
-
-见 [AGENTS.md](../AGENTS.md) 里程碑章节
-
----
-
-## 7. 参考
-
-- **参考图**: 经典计算机体系结构教材 RISC-V datapath 图
-- **Mermaid**: https://mermaid.js.org/
-- **RISC-V Spec**: https://riscv.org/technical/specifications/
-
----
-
-*本文档随项目迭代更新*
