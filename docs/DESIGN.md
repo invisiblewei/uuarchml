@@ -90,22 +90,22 @@ metadata:
 
 # 预声明接口（可选）
 interfaces:
-  - id: axi4_if
+  axi4_if:
     signals: [...]
 
 # 模块定义
 blocks:
-  - id: top
+  top:
     type: top
     nodes: [...]
     conns: [...]
     
-  - id: fetch
+  fetch:
     type: module
     nodes: [...]
     conns: [...]
     
-  - id: alu
+  alu:
     type: func
     nodes: [...]
     conns: [...]
