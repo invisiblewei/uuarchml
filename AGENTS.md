@@ -106,7 +106,7 @@ annotations:
 | **mux** | 多路选择器 | `inputs: 3` |
 | **arbiter** | 仲裁器 | `masters: 2` |
 | **fifo** | 队列 | `depth: 4` |
-| **inst** | 实例化 block | `block: fetch` |
+| **inst** | 实例化 block | `block: fetch`（与 node id 一致时可省略） |
 
 ## 重要文档
 
