@@ -33,7 +33,7 @@
 
 **结构优先，标注分层**
 
-- **核心层**: blocks、interfaces、nodes、conns
+- **结构层**: blocks、interfaces、nodes、conns
 - **标注层**: pipeline、highlight、notes
 
 ### 2.2 层级结构
