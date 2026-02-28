@@ -119,13 +119,13 @@ annotations:
 
 **顶层字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `chip` | 是 | 芯片/设计名称 |
-| `metadata` | 否 | 版本、描述等元信息 |
-| `interfaces` | 否 | 预声明接口定义（全局） |
-| `blocks` | 是 | 模块/功能块定义列表 |
-| `annotations` | 否 | 标注层，包含 pipeline、highlight、notes |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `chip` | string | 是 | 芯片/设计名称 |
+| `metadata` | object | 否 | 版本、描述等元信息 |
+| `interfaces` | object | 否 | 预声明接口定义（全局） |
+| `blocks` | object | 是 | 模块/功能块定义列表 |
+| `annotations` | object | 否 | 标注层，包含 pipeline、highlight、notes |
 
 ### 3.2 接口定义（interfaces）
 
@@ -133,19 +133,19 @@ annotations:
 
 **interfaces 字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `id`（作为 key） | 是 | 接口唯一标识 |
-| `label` | 否 | 显示名称 |
-| `signals` | 是 | 信号列表 |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id`（作为 key） | string | 是 | 接口唯一标识 |
+| `label` | string | 否 | 显示名称 |
+| `signals` | array | 是 | 信号列表 |
 
 **signal 字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `name` | 是 | 信号名 |
-| `width` | 是 | 位宽 |
-| `direction` | 是 | 方向：`in`/`out`/`inout` |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 信号名 |
+| `width` | number | 是 | 位宽 |
+| `direction` | string | 是 | 方向：`in`/`out`/`inout` |
 
 ```yaml
 interfaces:
@@ -167,24 +167,24 @@ interfaces:
 
 **blocks 字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `id`（作为 key） | 是 | 模块唯一标识 |
-| `type` | 是 | 类型：`top`/`module`/`func` |
-| `label` | 否 | 显示名称 |
-| `nodes` | 否 | 内部图元列表 |
-| `conns` | 否 | 内部连接列表 |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id`（作为 key） | string | 是 | 模块唯一标识 |
+| `type` | string | 是 | 类型：`top`/`module`/`func` |
+| `label` | string | 否 | 显示名称 |
+| `nodes` | array | 否 | 内部图元列表 |
+| `conns` | array | 否 | 内部连接列表 |
 
 **node 字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `id` | 是 | 图元唯一标识 |
-| `type` | 是 | 类型：`mux`/`arbiter`/`fifo`/`inst` |
-| `block` | 条件 | `type: inst` 时必需，引用的 block id |
-| `inputs` | 条件 | `type: mux` 时可选，输入路数 |
-| `masters` | 条件 | `type: arbiter` 时可选，主设备数 |
-| `depth` | 条件 | `type: fifo` 时可选，队列深度 |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id` | string | 是 | 图元唯一标识 |
+| `type` | string | 是 | 类型：`mux`/`arbiter`/`fifo`/`inst` |
+| `block` | string | 条件 | `type: inst` 时必需，引用的 block id |
+| `inputs` | number | 条件 | `type: mux` 时可选，输入路数 |
+| `masters` | number | 条件 | `type: arbiter` 时可选，主设备数 |
+| `depth` | number | 条件 | `type: fifo` 时可选，队列深度 |
 
 #### type: top — 根节点
 
@@ -260,16 +260,16 @@ type: top 的 block 自动作为设计根节点，无需额外 root 声明。
 
 **conns 字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `id` | 否 | 可选，用于标注引用 |
-| `from` | 是 | node id 或路径（如 `block.node`） |
-| `to` | 是 | node id 或路径（如 `block.node`） |
-| `interface` | 条件 | 引用预声明的 interface |
-| `sig` | 条件 | 单信号名 |
-| `name` | 否 | interface 实例名 |
-| `width` | 否 | 位宽 |
-| `type` | 否 | 信号类型 |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `id` | string | 否 | 可选，用于标注引用 |
+| `from` | string | 是 | node id 或路径（如 `block.node`） |
+| `to` | string | 是 | node id 或路径（如 `block.node`） |
+| `interface` | string | 条件 | 引用预声明的 interface |
+| `sig` | string | 条件 | 单信号名 |
+| `name` | string | 否 | interface 实例名 |
+| `width` | number | 否 | 位宽 |
+| `type` | string | 否 | 信号类型 |
 
 ```yaml
 conns:
@@ -311,26 +311,26 @@ annotations:
 
 **pipeline 字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `name` | 是 | 流水线名称 |
-| `stages` | 是 | 阶段列表 |
-| `registers` | 否 | 寄存器列表 |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 流水线名称 |
+| `stages` | array | 是 | 阶段列表 |
+| `registers` | array | 否 | 寄存器列表 |
 
 **stage 字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `name` | 是 | 阶段标识（如 IF、ID、EX） |
-| `label` | 否 | 显示名称 |
-| `nodes` | 是 | 该阶段包含的 node id 列表 |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 阶段标识（如 IF、ID、EX） |
+| `label` | string | 否 | 显示名称 |
+| `nodes` | array | 是 | 该阶段包含的 node id 列表 |
 
 **register 字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `between` | 是 | 相邻阶段名列表，如 `[IF, ID]` |
-| `label` | 否 | 寄存器显示名称 |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `between` | array | 是 | 相邻阶段名列表，如 `[IF, ID]` |
+| `label` | string | 否 | 寄存器显示名称 |
 
 ```yaml
 pipeline:
@@ -355,16 +355,16 @@ pipeline:
 
 **highlight 字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `type` | 是 | 类型：`path`/`range` |
-| `name` | 是 | 高亮名称 |
-| `targets` | 是 | 目标 id 列表 |
-| `color` | 否 | 颜色 |
-| `style` | 否 | 样式：`thick`/`dashed` 等 |
-| `label` | 否 | 显示标签 |
-| `delay` | 否 | 延迟标注 |
-| `opacity` | 否 | 透明度（0-1） |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `type` | string | 是 | 类型：`path`/`range` |
+| `name` | string | 是 | 高亮名称 |
+| `targets` | array | 是 | 目标 id 列表 |
+| `color` | string | 否 | 颜色 |
+| `style` | string | 否 | 样式：`thick`/`dashed` 等 |
+| `label` | string | 否 | 显示标签 |
+| `delay` | string | 否 | 延迟标注 |
+| `opacity` | number | 否 | 透明度（0-1） |
 
 | 类型 | targets 要求 | 用途 |
 |------|-------------|------|
@@ -393,12 +393,12 @@ highlight:
 
 **notes 字段说明**:
 
-| 字段 | 必需 | 说明 |
-|------|------|------|
-| `type` | 是 | 类型：`note` |
-| `target` | 是 | 目标 node id 或 conn id |
-| `text` | 是 | 注释文本 |
-| `anchor` | 否 | 锚点位置：`top`/`bottom`/`left`/`right` |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `type` | string | 是 | 类型：`note` |
+| `target` | string | 是 | 目标 node id 或 conn id |
+| `text` | string | 是 | 注释文本 |
+| `anchor` | string | 否 | 锚点位置：`top`/`bottom`/`left`/`right` |
 
 ```yaml
 notes:
