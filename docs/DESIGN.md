@@ -242,7 +242,7 @@ blocks:
         inputs: 3
       - id: adder
         type: inst
-        module: adder
+        block: adder
     conns:
       - from: op1_sel
         to: adder
