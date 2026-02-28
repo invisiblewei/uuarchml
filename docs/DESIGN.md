@@ -181,7 +181,7 @@ interfaces:
 |------|------|------|------|
 | `id`（作为 key） | string | 是 | 图元唯一标识 |
 | `type` | string | 是 | 类型：`mux`/`arbiter`/`fifo`/`inst` |
-| `block` | string | 条件 | `type: inst` 时必需，引用的 block id |
+| `block` | string | 条件 | `type: inst` 时引用 block id；与 node id 一致时可省略 |
 | `inputs` | number | 条件 | `type: mux` 时可选，输入路数 |
 | `masters` | number | 条件 | `type: arbiter` 时可选，主设备数 |
 | `depth` | number | 条件 | `type: fifo` 时可选，队列深度 |
@@ -195,11 +195,9 @@ blocks:
     label: "RISC-V CPU"
     nodes:
       fetch:
-        type: inst
-        block: fetch
+        type: inst              # block 省略，默认为 fetch
       decode:
-        type: inst
-        block: decode
+        type: inst              # block 省略，默认为 decode
       op1_sel:
         type: mux
         inputs: 3
@@ -218,8 +216,7 @@ blocks:
     label: "Fetch Unit"
     nodes:
       pc_reg:
-        type: inst
-        block: pc_reg      # 引用其他 module，无需展开定义
+        type: inst      # 引用其他 module，无需展开定义
       imem_port:
         type: inst
         block: mem_port
@@ -455,7 +452,6 @@ blocks:
       # IF Stage
       pc_reg:
         type: inst
-        block: pc_reg
       imem_port:
         type: inst
         block: mem_port
@@ -463,10 +459,8 @@ blocks:
       # ID Stage
       decode:
         type: inst
-        block: decode
       regfile:
         type: inst
-        block: regfile
 
       # EX Stage
       op1_sel:
@@ -477,12 +471,10 @@ blocks:
         inputs: 3
       execute:
         type: inst
-        block: execute
 
       # MEM Stage
       memory:
         type: inst
-        block: memory
       mem_arb:
         type: arbiter
         masters: 2
@@ -493,7 +485,6 @@ blocks:
       # WB Stage
       writeback:
         type: inst
-        block: writeback
 
     conns:
       # IF → ID
