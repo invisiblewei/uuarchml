@@ -219,7 +219,10 @@ blocks:
     nodes:
       - id: pc_reg
         type: inst
-        block: pc_reg
+        block: pc_reg      # 引用其他 module，无需展开定义
+      - id: imem_port
+        type: inst
+        block: mem_port
     conns:
       - from: pc_reg
         to: imem_port
