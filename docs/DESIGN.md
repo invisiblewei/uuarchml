@@ -64,16 +64,17 @@ chip
 | **module** | 可复用模块，可被多处实例化 | 全局复用 |
 | **func** | 内部功能块，仅在当前 block 内使用 | 局部使用 |
 
-### 2.5 node 类型（4种）
+### 2.5 node 类型（5种）
 
 用于 `nodes` 中的 `type` 字段：
 
-| 类型 | 用途 | 参数 |
-|------|------|------|
-| **mux** | 多路选择器 | `inputs: 3` |
-| **arbiter** | 仲裁器 | `masters: 2` |
-| **fifo** | 队列 | `depth: 4` |
-| **inst** | 实例化 block | `block: fetch` |
+| 类型 | 用途 | 参数 | 端口 |
+|------|------|------|------|
+| **mux** | 多路选择器 | `inputs: 3` | `in0`, `in1`, `in2`... `out`, `sel` |
+| **arbiter** | 仲裁器 | `masters: 2` | `req0`, `req1`... `grant0`, `grant1` |
+| **fifo** | 队列 | `depth: 4` | `enq`, `deq`, `full`, `empty` |
+| **reg** | 寄存器 | - | `in`, `out`, `en`, `rst` |
+| **inst** | 实例化 block | `block: fetch` | 由 block 定义决定 |
 
 ---
 
@@ -289,6 +290,12 @@ conns:
   - from: fetch.pc_reg
     to: decode
     sig: pc_plus4
+
+  # 连接到指定端口
+  - from: ctrl_unit
+    to: mux1:sel
+    sig: op_sel
+    width: 2
 ```
 
 ---

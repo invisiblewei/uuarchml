@@ -21,7 +21,7 @@
 |------|------|
 | **interface** | 预声明的信号组，用于总线/协议 |
 | **block** | 设计单元，分 top/module/func 三种 |
-| **node** | block 内部的图元实例 (mux/arbiter/fifo/inst) |
+| **node** | block 内部的图元实例 (mux/arbiter/fifo/reg/inst) |
 | **conns** | 连接定义 |
 
 ## 项目结构
@@ -107,6 +107,7 @@ annotations:
 | **arbiter** | 仲裁器 | `masters: 2` |
 | **fifo** | 队列 | `depth: 4` |
 | **inst** | 实例化 block | `block: fetch`（与 node id 一致时可省略） |
+| **reg** | 寄存器 | - |
 
 ## 重要文档
 
