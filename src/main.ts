@@ -1,5 +1,5 @@
 /**
- * uuarckml Web 应用主入口
+ * uuarchml Web 应用主入口
  */
 
 import { parseDSL, renderToSVG, createAIAssistant } from './index';

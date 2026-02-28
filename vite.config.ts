@@ -14,8 +14,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      name: 'ChipViz',
-      fileName: 'chipviz',
+      name: 'uuarchml',
+      fileName: 'uuarchml',
     },
     rollupOptions: {
       output: {
