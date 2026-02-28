@@ -115,7 +115,22 @@ annotations:
 
 ## 里程碑
 
-见 [DESIGN.md](docs/DESIGN.md) 第 8 节
+### Phase 1: MVP
+- [x] YAML DSL 设计 v0.6
+- [ ] YAML 解析器（js-yaml）
+- [ ] 基础布局引擎（网格 + 流水线）
+- [ ] 4种基础图元 + inst 渲染
+
+### Phase 2: 完善
+- [ ] 层级展开/折叠
+- [ ] 信号路由（避免重叠）
+- [ ] 关键路径高亮
+- [ ] 主题切换
+
+### Phase 3: 进阶
+- [ ] 导出 PNG/SVG
+- [ ] Mermaid 双向转换
+- [ ] 动画演示
 
 ## 注意事项
 
