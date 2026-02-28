@@ -49,12 +49,12 @@ annotations: { pipeline, highlight, notes }  # 可选：标注
 | 类型 | 用途 | 特性 |
 |------|------|------|
 | `top` | 根节点 | 唯一入口，自动作为 root |
-| `module` | 可复用模块 | 全局可实例化 |
-| `func` | 内部功能块 | 仅当前 block 内使用 |
+| `module` | 可复用模块 | 全局可实例化，可通过 conn 低成本转换为 func |
+| `func` | 内部功能块 | 仅当前 block 内使用，可通过 conn 低成本转换为 module |
 
 ### 2.2 Node 类型（5种）
 
-| 类型 | 参数 | 默认端口 |
+| 类型 | 参数 | 省略端口 |
 |------|------|----------|
 | `mux` | `inputs: n` | `in0~in{n-1}`, `out`, `sel` |
 | `arbiter` | `masters: n` | `req0~req{n-1}`, `grant0~grant{n-1}` |
@@ -121,12 +121,18 @@ conns:
 interfaces:
   axi4_if:                       # interface name
     label: "AXI4"               # 可选：显示名称
-    signals:
+    signals:                     # 可选：可酌情省略
       - { name: awaddr, width: 32, direction: out }
       - { name: rdata, width: 32, direction: in }
 ```
 
-**Signal 字段**：`name` (string), `width` (number), `direction` (in/out/inout)
+**Signal 字段**：
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 信号名 |
+| `width` | number | 是 | 位宽 |
+| `direction` | string | 是 | 方向：`in`/`out`/`inout` |
 
 ---
 
