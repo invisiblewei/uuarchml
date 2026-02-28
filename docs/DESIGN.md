@@ -641,67 +641,62 @@ blocks:
     conns: []
 
 # ═══════════════════════════════════════════════════
-# 顶层实例
-# ═══════════════════════════════════════════════════
-
-root: riscv_top
-
-# ═══════════════════════════════════════════════════
 # 标注层
 # ═══════════════════════════════════════════════════
 
-pipeline:
-  name: main
-  stages:
-    - name: IF
-      label: "Instruction Fetch"
-      nodes: [pc_reg, imem_if]
-    - name: ID
-      label: "Decode"
-      nodes: [decode, regfile]
-    - name: EX
-      label: "Execute"
-      nodes: [op1_sel, op2_sel, execute]
-    - name: MEM
-      label: "Memory"
-      nodes: [memory, mem_arb, dmem_if]
-    - name: WB
-      label: "Write Back"
-      nodes: [writeback]
+annotations:
+  pipeline:
+    name: main
+    stages:
+      - name: IF
+        label: "Instruction Fetch"
+        nodes: [pc_reg, imem_if]
+      - name: ID
+        label: "Decode"
+        nodes: [decode, regfile]
+      - name: EX
+        label: "Execute"
+        nodes: [op1_sel, op2_sel, execute]
+      - name: MEM
+        label: "Memory"
+        nodes: [memory, mem_arb, dmem_if]
+      - name: WB
+        label: "Write Back"
+        nodes: [writeback]
 
-  registers:
-    - between: [IF, ID]
-      label: "IF/ID"
-    - between: [ID, EX]
-      label: "ID/EX"
-    - between: [EX, MEM]
-      label: "EX/MEM"
-    - between: [MEM, WB]
-      label: "MEM/WB"
+    registers:
+      - between: [IF, ID]
+        label: "IF/ID"
+      - between: [ID, EX]
+        label: "ID/EX"
+      - between: [EX, MEM]
+        label: "EX/MEM"
+      - between: [MEM, WB]
+        label: "MEM/WB"
 
-  latency: 5
+    latency: 5
 
-highlight:
-  - type: path
-    name: critical_path
-    targets: [bypass_ex_conn]
-    color: red
-    style: thick
-    label: "EX→EX Bypass ~800ps"
-    delay: "~200ps"
+  highlight:
+    - type: path
+      name: critical_path
+      targets: [bypass_ex_conn]
+      color: red
+      style: thick
+      label: "EX→EX Bypass ~800ps"
+      delay: "~200ps"
 
-  - type: range
-    name: bypass_network
-    targets: [op1_sel, op2_sel, bypass_ex_conn, bypass_ex2_conn, bypass_mem_conn, bypass_mem2_conn]
-    color: blue
-    opacity: 0.15
-    label: "3-to-1 旁路选择器"
+    - type: range
+      name: bypass_network
+      targets: [op1_sel, op2_sel, bypass_ex_conn, bypass_ex2_conn, bypass_mem_conn, bypass_mem2_conn]
+      color: blue
+      opacity: 0.15
+      label: "3-to-1 旁路选择器"
 
-notes:
-  - type: note
-    target: mem_arb
-    text: "Round-robin 仲裁\nIF 优先级更高"
-    anchor: bottom
+  notes:
+    - type: note
+      target: mem_arb
+      text: "Round-robin 仲裁\nIF 优先级更高"
+      anchor: bottom
 ```
 
 ---
