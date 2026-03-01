@@ -230,34 +230,25 @@ conns:
 
 ### 7.3 Func 与 Module 转换
 
-**场景**：当内部功能块（func）需要被外部调用时，低成本升级为模块（module）。
-
-**核心改动**：
-- `type: func` → `type: module`
-- 添加外部连接（`conn`），保持内部逻辑不变
-
-**转换示例**：
+func 仅在当前 block 内使用，module 可被全局实例化。转换时只需改 `type` 并调整连接：
 
 ```yaml
-# 原 func 定义（仅内部使用）
+# func：内部使用，连接指向内部节点
 blocks:
-  alu_func:
+  alu_inner:
     type: func
     nodes:
       alu: { type: inst }
     conns:
-      - from: alu, to: internal, sig: result
+      - from: alu, to: inner_dst, sig: result
 
-# 转换为 module（添加外部连接，内部 conn 不变）
+# module：全局可用，连接指向外部端口
 blocks:
-  alu_module:
+  alu_mod:
     type: module
     nodes:
       alu: { type: inst }
     conns:
-      # 内部连接保持不变
-      - from: alu, to: internal, sig: result
-      # 新增外部连接
       - from: alu, to: external, sig: result
 ```
 
