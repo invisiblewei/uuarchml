@@ -230,10 +230,10 @@ conns:
 
 ### 7.3 Func 与 Module 转换
 
-通过添加 `conn` 低成本转换：
+func 和 module 的区别在于**使用范围**，而非连接方式。通过修改 type 字段低成本转换：
 
 ```yaml
-# func：内部功能
+# func：内部功能块，仅在当前 block 内使用
 blocks:
   alu_inner:
     type: func
@@ -242,7 +242,7 @@ blocks:
     conns:
       - from: alu, to: dst, sig: result
 
-# module：提升到module
+# module：提升为全局可复用模块
 blocks:
   alu_mod:
     type: module
