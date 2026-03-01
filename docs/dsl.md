@@ -233,23 +233,23 @@ conns:
 通过添加 `conn` 低成本转换：
 
 ```yaml
-# 原 func 定义（带内部连接）
+# func：内部功能
 blocks:
-  alu_func:
+  alu_inner:
     type: func
     nodes:
       alu: { type: inst }
     conns:
-      - from: alu, to: internal, sig: result
+      - from: alu, to: dst, sig: result
 
-# 转换为 module（添加外部连接）
+# module：提升到module
 blocks:
-  alu_module:
+  alu_mod:
     type: module
     nodes:
       alu: { type: inst }
     conns:
-      - from: alu, to: external, sig: result
+      - from: alu, to: dst, sig: result
 ```
 
 ---
