@@ -4,7 +4,7 @@
 
 ## 设计哲学
 
-**定位**：框图是沟通工具，不是实现规范。
+**定位**：框图是沟通工具，不是实现规范。按需省略，降低描述开销。
 
 | 层级 | 作用 | 示例 |
 |------|------|------|
@@ -13,17 +13,10 @@
 | **布局引导** (`layout`) | 怎么画更清晰 | 数据流从左到右、相关模块对齐 |
 | **文档补充** (Markdown 正文) | 为什么这样设计 | 时钟域划分、性能权衡、实现细节 |
 
-**核心原则**：
-1. **拓扑优先**：结构（有什么、连什么）与呈现（怎么画、什么含义）分离
-2. **显式优于隐式**：关系明确声明，拒绝隐式连接或魔法行为
-3. **延迟精确**：位宽、时钟域等实现细节延迟到 annotations 或文档
-
 ## 应用场景
 
 **适用**：表达架构意图，绘制框图辅助沟通。
-
 **范围**：不限于完整芯片，可以是子系统、模块或小功能特性。
-
 **不适用**：精确时序分析、RTL 代码生成、物理布局设计。
 
 ```yaml
@@ -58,7 +51,7 @@ layout: { direction, hints }    # 可选：布局引导
 
 ---
 
-## 2. 核心类型速查
+## 2. 拓扑描述
 
 ### 2.1 Block 类型
 
@@ -80,40 +73,7 @@ layout: { direction, hints }    # 可选：布局引导
 | `nodes` | dict | 否 | 内部图元定义 |
 | `conns` | list | 否 | 内部连接定义 |
 
-### 2.3 Top 类型的 Ports（芯片边界）
-
-仅 `type: top` 支持 `ports` 定义芯片边界。内部 block 通过 `conns` 表达连接，无需 ports。
-
-```yaml
-blocks:
-  riscv_top:
-    type: top
-    ports:                    # 仅 top 类型可选
-      clk: in                 # 简写：端口名映射方向
-      rst_n: in
-      axi_mst: { dir: out, interface: axi4_if }  # 需接口时用对象
-      pc: out
-    nodes:
-      ...
-
-  # 内部 module 不需要 ports，通过 conns 表达
-  alu:
-    type: module
-    nodes:
-      exec: { type: inst }
-    conns:
-      - from: top.op_a, to: exec, sig: operand_a  # 从 top 的 port 连入
-```
-
-**ports 字段**（仅 top 类型可选）：
-- 简写形式：`port_id: dir`（dir = `in`/`out`/`inout`）
-- 对象形式：`port_id: { dir: in/out/inout, interface: xxx }`（需引用接口时）
-
-**注意**：位宽属于实现细节，通过 `annotations.notes` 标注，不参与拓扑结构。
-
----
-
-### 2.2 Node 类型（5种）
+### 2.2 Node 类型
 
 | 类型 | 参数 | 说明 |
 |------|------|------|
@@ -123,153 +83,99 @@ blocks:
 | `arbiter` | `masters: n` | 仲裁器 |
 | `fifo` | `depth: n` | 先进先出队列 |
 
-**Node 定义格式**：`{node_id}: { type, ...params }`
-
 ```yaml
 nodes:
-  alu: { type: inst }              # 通用方框
-  sel: { type: mux, inputs: 2 }    # 2 输入选择器
-  buf: { type: fifo, depth: 4 }   # 深度 4 的 FIFO
-
-  # 多实例节点
-  core:
-    type: inst
-    block: cpu_core
-    replica: 4                      # 实例化 4 个 core
+  alu: { type: inst }
+  sel: { type: mux, inputs: 2 }
+  core: { type: inst, block: cpu_core, replica: 4 }
 ```
 
-**Node 字段**：
-
-| 字段 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `type` | string | 是 | node 类型 |
-| `block` | string | 否 | 引用的 block 类型 |
-| `replica` | number | 否 | 实例数量（默认 1）。表示完全相同的副本，若需参数化差异应显式定义为不同 node |
-| `...` | - | 否 | 类型特定参数（如 `inputs` 等）|
+| 字段 | 说明 |
+|------|------|
+| `type` | node 类型 |
+| `block` | 引用的 block 类型 |
+| `replica` | 实例数量（默认 1）|
 
 ---
 
-## 3. 连接与端口语法
+### 2.3 连接语法
 
-### 3.0 节点实例访问语法
-
-多实例访问语法：
+**节点访问**：
 
 | 语法 | 说明 |
 |------|------|
-| `node` | replica=1 时的简写 |
-| `node[N]` | 访问第 N 个实例（0-based）|
-| `node[N]:port` | 访问特定实例的端口 |
+| `node` | 单实例简写；或多实例时指所有实例 |
+| `node[N]` | 第 N 个实例 |
+| `node[M..N]` | 索引范围（可选）|
 
-```yaml
-conns:
-  # 访问特定实例
-  - from: fetch, to: core[0], sig: instr     # 第0个 core
-  - from: fetch, to: core[1], sig: instr     # 第1个 core
-  - from: core:out, to: lsu:in, sig: req     # replica=1 时简写
-```
-
-### 3.1 连接格式
+**连接格式**：
 
 ```yaml
 conns:
   # 行内语法（单个连接）
   - from: node_id, to: node_id, sig: name
   - from: node:port, to: node:port, sig: name
-  - from: block.node, to: node, sig: name
 
   # 多行语法（需额外字段时）
-  - id: conn_name
-    from: a
-    to: b
-    sig: name
-    width: 32
-    type: control  # data/control/bypass
-```
-
-### 3.2 批量连接语法（replica 场景）
-
-```yaml
-conns:
-  # 多端 ↔ 单端（1:n 或 n:1），默认 broadcast
-  - from: core
-    to: arb
-    sig: req
-
-  # 多端 ↔ 多端，需指定 map
   - from: core
     to: bank
     sig: data
-    map: hash(addr)  # one-to-one/broadcast/expr
+    map: hash(addr)  # one-to-one/broadcast/all2all/expr
 ```
+
+| map 规则 | 行为 |
+|----------|------|
+| `broadcast`（默认）| 单端连到多端所有实例 |
+| `one-to-one` | 同索引一对一 |
+| `all2all` | 每对实例全连接 |
+| `<expr>` | 自定义函数 |
+
+**端口规则**：
 
 | 语法 | 说明 |
 |------|------|
-| `node` | 单实例简写；或多实例时指所有实例 |
-| `node[N]` | 第 N 个实例（0-based） |
-| `node[M..N]` | 索引范围（可选） |
+| `node` | 连线指向节点边缘 |
+| `node:port` | 虚拟锚点，无需预先声明 |
+| `block.node` | 跨层级访问 |
 
-| map 规则 | 行为 | 适用 |
-|----------|------|------|
-| `broadcast`（默认）| 单端连到多端所有实例 | 1:n、n:1 |
-| `one-to-one` | 同索引一对一 | 两边 replica 相等时 |
-| `all2all` | 每对实例全连接 | n:m 全连接 |
-| `<expr>` | 自定义函数 | 如 `hash(addr)` |
+**Top 类型的 Ports**（芯片边界）：
 
-### 3.3 端口与连线规则
+仅 `type: top` 支持 `ports` 定义芯片边界。
 
-| 语法 | 制图表现 | 应用场景 |
-|------|----------|----------|
-| `node` | 连线直接指向节点边缘中心，不绘制端口锚点 | 简洁表达 |
-| `node:port` | 在节点边缘创建虚拟锚点并标注端口名 | 区分连接位置 |
-| `block.node` | 穿透 Block 边界指向内部 | 跨层级 |
-
-**隐式原则**：端口无需预先声明，`node:port` 仅作为位置占位。
-
-**简洁形式**：连线直接指向节点边缘，不强制绘制端口锚点。
-
-### 3.4 连接字段
-
-| 字段 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `from` | string | 是 | 源：`node` / `node[N]` / `node:port` / `block.node` |
-| `to` | string | 是 | 目标：同上 |
-| `sig` | string | 条件 | 信号名（与 interface 二选一）|
-| `interface` | string | 条件 | 引用预定义接口 |
-| `name` | string | 条件 | 接口实例名（使用 interface 时）|
-| `width` | number | 否 | 位宽 |
-| `id` | string | 否 | 用于 highlight 引用 |
-| `type` | string | 否 | 连接类型：`data`/`control`/`bypass`，影响视觉样式 |
-| `map` | string | 否 | 批量连接映射：`one-to-one`/`broadcast`/表达式 |
+```yaml
+blocks:
+  riscv_top:
+    type: top
+    ports:
+      clk: in
+      axi_mst: { dir: out, interface: axi4_if }
+```
 
 ---
 
-## 4. 接口定义（interfaces）
+### 2.4 接口定义
 
 ```yaml
 interfaces:
-  axi4_if:                       # interface id
-    label: "AXI4"               # 可选：显示名称
-    signals:                     # 可选：可酌情省略
+  axi4_if:
+    label: "AXI4"
+    signals:
       - { name: awaddr, width: 32, direction: out }
-      - { name: rdata, width: 32, direction: in }
 ```
 
-**Signal 字段**：
-
-| 字段 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `name` | string | 是 | 信号名 |
-| `width` | number | 是 | 位宽 |
-| `direction` | string | 是 | 方向：`in`/`out`/`inout` |
+| 字段 | 说明 |
+|------|------|
+| `name` | 信号名 |
+| `width` | 位宽 |
+| `direction` | `in`/`out`/`inout` |
 
 ---
 
-## 5. 标注层（annotations）
+## 3. 标注层（annotations）
 
 标注层仅提供**视觉指引**，复杂说明配合文档正文。建议用简洁标签（如"①""关键路径"），详细解释写在 Markdown 中。
 
-### 5.1 Pipeline（流水线标注）
+### 3.1 Pipeline（流水线标注）
 
 ```yaml
 annotations:
@@ -287,7 +193,7 @@ annotations:
 | `stages` | 阶段列表，`name` 用于 registers 引用 |
 | `registers` | 阶段间寄存器标注，`between: [from, to]` |
 
-### 5.2 Highlight（高亮）
+### 3.2 Highlight（高亮）
 
 类型：`path`（路径）、`range`（区域）
 
@@ -304,7 +210,7 @@ highlight:
 | `style` | 线条样式：`thick`/`dashed`（path）|
 | `opacity` | 填充透明度 0.0-1.0（range）|
 
-### 5.3 Notes（注释）
+### 3.3 Notes（注释）
 
 ```yaml
 annotations:
@@ -321,7 +227,7 @@ annotations:
 
 ---
 
-## 6. 布局引导（layout）
+## 4. 布局引导（layout）
 
 `layout` 提供**建议性**布局指导，渲染器可忽略。拓扑是核心，布局是可牺牲的优化。
 
@@ -368,7 +274,7 @@ layout:
 
 ---
 
-## 7. 完整最小示例
+## 5. 完整最小示例
 
 ```yaml
 name: demo_cpu
@@ -434,9 +340,9 @@ annotations:
 
 ---
 
-## 8. 常见模式
+## 6. 常见模式
 
-### 8.1 旁路网络（Bypass）
+### 6.1 旁路网络（Bypass）
 
 用虚拟端口区分连接位置：
 
@@ -449,7 +355,7 @@ conns:
   - from: mem_sys, to: sel:in1, sig: mem_data
 ```
 
-### 8.2 内存仲裁
+### 6.2 内存仲裁
 
 ```yaml
 nodes:
@@ -461,7 +367,7 @@ conns:
   - from: dmem, to: arb:req_d, interface: axi4_if
 ```
 
-### 8.3 多实例与批量连接（Replica）
+### 6.3 多实例与批量连接（Replica）
 
 ```yaml
 nodes:
@@ -474,7 +380,7 @@ conns:
   - from: intc, to: core, sig: irq  # 广播
 ```
 
-### 8.4 Func 与 Module 转换
+### 6.4 Func 与 Module 转换
 
 仅 `type` 字段不同，其余结构完全一致：
 
@@ -487,15 +393,6 @@ alu_inner:
   conns:
     - from: alu, to: dst, sig: result
 ```
-
----
-
-## 9. 设计原则
-
-1. **简洁表达**：按需省略，降低描述开销
-2. **分层引用**：用 `block.node` 跨层级，用 `node:port` 精确定位
-3. **视图分离**：拓扑结构与视觉标注分离，标注不改变底层模型
-4. **模型自洽**：确保连接、节点与标注语义一致
 
 ---
 
