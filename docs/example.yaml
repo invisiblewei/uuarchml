@@ -1,7 +1,8 @@
 name: riscv_cpu
 metadata:
   version: "1.0"
-  description: "经典 5 级流水线 RISC-V CPU"
+  description: "经典 5 级流水线 RISC-V CPU - DSL v0.7 示例"
+
 interfaces:
   axi4_if:
     label: "AXI4"
@@ -15,23 +16,42 @@ interfaces:
       - name: rdata
         width: 32
         direction: in
+
 blocks:
   # ── 根节点 ──
   riscv_top:
     type: top
     label: "RISC-V CPU"
+    desc: "支持多核配置的 32位 RISC-V 处理器顶层"
+    ports:
+      # 时钟复位
+      clk: in
+      rst_n: in
+      # 总线接口（使用对象形式）
+      axi_mst: { dir: out, interface: axi4_if }
+      # 调试接口
+      jtag_tck: in
+      jtag_tms: in
+      jtag_tdi: in
+      jtag_tdo: out
+
     nodes:
       # IF Stage
       pc_reg:
         type: inst
+        desc: "程序计数器，支持分支预测"
       imem_port:
         type: inst
         block: mem_port
+
       # ID Stage
       decode:
         type: inst
+        desc: "指令译码，生成控制信号"
       regfile:
         type: inst
+        desc: "32个 32位通用寄存器，双读口"
+
       # EX Stage
       op1_sel:
         type: mux
@@ -41,18 +61,24 @@ blocks:
         inputs: 3
       execute:
         type: inst
+        block: alu
+
       # MEM Stage
       memory:
         type: inst
+        desc: "访存单元，处理加载/存储"
       mem_arb:
         type: arbiter
         masters: 2
       dmem_port:
         type: inst
         block: mem_port
+
       # WB Stage
       writeback:
         type: inst
+        desc: "写回阶段，选择 ALU 结果或内存数据"
+
     conns:
       # IF → ID
       - from: pc_reg
@@ -68,6 +94,7 @@ blocks:
         sig: rs_addr
         width: 10
         type: control
+
       # ID → EX
       - from: regfile
         to: op1_sel
@@ -89,6 +116,7 @@ blocks:
         sig: operand2
         width: 32
         type: data
+
       # EX → MEM
       - from: execute
         to: memory
@@ -99,18 +127,21 @@ blocks:
         to: dmem_port
         interface: axi4_if
         name: data_access
+
       # MEM → WB
       - from: memory
         to: writeback
         sig: mem_data
         width: 32
         type: data
+
       # WB → ID
       - from: writeback
         to: regfile
         sig: rd_data
         width: 32
         type: data
+
       # 旁路网络
       - id: bypass_ex_conn
         from: execute
@@ -136,6 +167,7 @@ blocks:
         sig: bypass_mem2
         width: 32
         type: bypass
+
       # 内存仲裁
       - from: imem_port
         to: mem_arb
@@ -145,47 +177,177 @@ blocks:
         to: mem_arb
         interface: axi4_if
         name: lsu_req
-  # ── 可复用模块 ──
+
+  # ── ALU 模块（展示 logic 字段）──
+  alu:
+    type: module
+    label: "ALU"
+    desc: "32位整数运算单元，支持算术逻辑运算和比较"
+    logic: |
+      // ALU 运算伪代码
+      case alu_op:
+        // 算术运算
+        ADD:  result = operand_a + operand_b
+        SUB:  result = operand_a - operand_b
+        // 逻辑运算
+        AND:  result = operand_a & operand_b
+        OR:   result = operand_a | operand_b
+        XOR:  result = operand_a ^ operand_b
+        // 移位运算
+        SLL:  result = operand_a << operand_b[4:0]
+        SRL:  result = operand_a >> operand_b[4:0]
+        SRA:  result = operand_a >>> operand_b[4:0]
+        // 比较运算
+        SLT:  result = (signed(operand_a) < signed(operand_b)) ? 1 : 0
+        SLTU: result = (operand_a < operand_b) ? 1 : 0
+        default: result = 0
+      endcase
+
+      // 标志位生成
+      zero_flag = (result == 0)
+      overflow_flag = (operand_a[31] == operand_b[31]) &&
+                      (result[31] != operand_a[31])
+    nodes:
+      adder: { type: inst }
+      shifter: { type: inst }
+      comparator: { type: inst }
+      result_mux: { type: mux, inputs: 4 }
+    conns: []
+
+  # ── 内存端口模块 ──
+  mem_port:
+    type: module
+    label: "Memory Port"
+    desc: "AXI4 主设备接口，处理内存请求"
+    nodes: []
+    conns: []
+
+  # ── 多核 cluster 示例（展示 replica 和批量连接）──
+  multi_core_cluster:
+    type: module
+    label: "4核处理器集群"
+    desc: "用于展示 replica 和批量连接语法的示例配置"
+
+    nodes:
+      # 共享组件
+      cluster_clken:
+        type: inst
+        desc: "时钟门控单元"
+      l2_cache:
+        type: inst
+        desc: "共享二级缓存"
+
+      # 多实例核心（4个核心）
+      core:
+        type: inst
+        block: cpu_core
+        replica: 4
+
+      # 多 bank L2（2个 bank）
+      l2_bank:
+        type: inst
+        block: l2_cache_bank
+        replica: 2
+
+      # 互连
+      xbar:
+        type: arbiter
+        masters: 4
+        desc: "交叉开关，连接核心到 L2"
+
+    conns:
+      # 1:1 映射 - 每个核心连到 xbar 对应端口
+      - from: core[0..3]
+        to: xbar
+        sig: core_req
+        map: one-to-one
+
+      # 广播 - 时钟门控信号到所有核心
+      - from: cluster_clken
+        to: core[*]
+        sig: clk_en
+        map: broadcast
+
+      # 多对多 - 核心到 L2 bank 的映射
+      - from: core[0..3]
+        to: l2_bank[0..1]
+        sig: cache_req
+        map: hash(addr[11:10])
+
+      # 单独访问特定实例
+      - from: core[0]
+        to: l2_cache
+        sig: debug_req
+
+  # ── CPU 核心模块 ──
+  cpu_core:
+    type: module
+    label: "CPU Core"
+    desc: "单核 RISC-V 处理器"
+    nodes: []
+    conns: []
+
+  # ── L2 Cache Bank 模块 ──
+  l2_cache_bank:
+    type: module
+    label: "L2 Cache Bank"
+    desc: "L2 缓存的单个 bank，支持 4 路组相联"
+    nodes: []
+    conns: []
+
+  # ── 保留的模块定义 ──
   fetch:
     type: module
     label: "Fetch Unit"
     nodes: []
     conns: []
+
   decode:
     type: module
     label: "Decode Unit"
     nodes: []
     conns: []
+
   execute:
     type: module
     label: "Execute Unit"
     nodes: []
     conns: []
+
   memory:
     type: module
     label: "Memory Unit"
     nodes: []
     conns: []
+
   writeback:
     type: module
     label: "Writeback Unit"
     nodes: []
     conns: []
+
   regfile:
     type: module
     label: "Register File"
     nodes: []
     conns: []
+
   pc_reg:
     type: module
     label: "PC Register"
     nodes: []
     conns: []
-  mem_port:
-    type: module
-    label: "Memory Port"
-    nodes: []
-    conns: []
+
+layout:
+  direction: LR
+  hints:
+    - type: main_path
+      nodes: [pc_reg, decode, execute, memory, writeback]
+      priority: high
+    - type: rank
+      level: same
+      nodes: [op1_sel, op2_sel]
+
 annotations:
   pipeline:
     name: main
@@ -215,6 +377,7 @@ annotations:
       - between: [MEM, WB]
         label: "MEM/WB"
     latency: 5
+
   highlight:
     - type: path
       name: critical_path
@@ -229,8 +392,13 @@ annotations:
       color: blue
       opacity: 0.15
       label: "3-to-1 旁路选择器"
+
   notes:
     - type: note
       target: mem_arb
       text: "Round-robin 仲裁\nIF 优先级更高"
       anchor: bottom
+    - type: note
+      target: execute
+      text: "ALU 支持 ADD/SUB/AND/OR/XOR/SLT\n详见 alu.logic 字段"
+      anchor: right
