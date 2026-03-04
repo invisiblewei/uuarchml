@@ -1,4 +1,4 @@
-chip: riscv_cpu
+name: riscv_cpu
 metadata:
   version: "1.0"
   description: "经典 5 级流水线 RISC-V CPU"
@@ -234,4 +234,3 @@ annotations:
       target: mem_arb
       text: "Round-robin 仲裁\nIF 优先级更高"
       anchor: bottom
-```

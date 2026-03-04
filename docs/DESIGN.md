@@ -1,6 +1,6 @@
 # uuarchml 设计文档 v0.6
 
-**版本**: 0.6.0  
+**版本**: 0.6.1  
 **日期**: 2026-02-26  
 **状态**: 迭代中
 
@@ -189,72 +189,3 @@ chip
 ---
 
 *本文档随项目迭代更新*
-
----
-
-## 3. DSL 验证方案
-
-验证 LLM 是否能正确理解并生成 uuarchml DSL。
-
-### 3.1 验证等级
-
-| 等级 | 描述 | 测试用例 |
-|------|------|----------|
-| **L1** | 基础结构 | 单 block，2-3 个 nodes，简单连接 |
-| **L2** | 完整模块 | 多 block（top + modules），接口定义，分层连接 |
-| **L3** | 复杂场景 | 旁路网络、内存仲裁、流水线标注、高亮路径 |
-| **L4** | 端口连接 | 使用 `node:port` 语法精确连接 |
-
-### 3.2 验证提示词模板
-
-```
-请根据以下描述生成 uuarchml DSL YAML：
-
-[描述]
-设计一个 3 级流水线 CPU，包含：
-- IF 阶段：PC 寄存器、指令存储器接口
-- EX 阶段：ALU、2 输入选择器
-- 旁路：EX→EX 旁路
-
-要求：
-1. 使用 block 作为 key 的 dict 格式
-2. nodes 使用 id 作为 key
-3. inst 类型省略 block（如果与 id 一致）
-4. 添加 pipeline 标注
-
-[dsl.md 内容]
-[此处插入 dsl.md 全文]
-```
-
-### 3.3 验证检查清单
-
-**结构检查**：
-- [ ] `chip` 字段存在
-- [ ] `blocks` 是 dict，不是 list
-- [ ] `nodes` 是 dict，不是 list
-- [ ] `conns` 是 list
-
-**类型检查**：
-- [ ] block `type` 是 top/module/func 之一
-- [ ] node `type` 是 mux/arbiter/fifo/reg/inst 之一
-- [ ] `inst` 类型正确省略 block（当与 id 一致时）
-
-**连接检查**：
-- [ ] `from`/`to` 引用存在的 node
-- [ ] 端口语法 `node:port` 正确使用
-- [ ] 跨层级路径 `block.node` 正确使用
-
-**标注检查**：
-- [ ] `pipeline.stages.nodes` 引用存在的 nodes
-- [ ] `highlight.targets` 引用存在的 conn/node
-
-### 3.4 评分标准
-
-| 指标 | 权重 | 说明 |
-|------|------|------|
-| 语法正确 | 30% | YAML 格式正确，无语法错误 |
-| 结构正确 | 30% | 使用 dict 格式，id 作为 key |
-| 语义正确 | 25% | 连接关系符合描述意图 |
-| 标注完整 | 15% | pipeline/highlight 正确使用 |
-
-**通过标准**：总分 ≥ 80%，且 L1-L3 全部通过

@@ -46,6 +46,15 @@ annotations: { pipeline, highlight, notes }  # 可选：标注
 | `module` | 可复用模块 | 全局可实例化 |
 | `func` | 内部功能块 | 仅当前 block 内使用 |
 
+**Block 字段**：
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `type` | string | 是 | block 类型: `top`/`module`/`func` |
+| `label` | string | 否 | 显示名称，用于渲染时替代 block_id |
+| `nodes` | dict | 否 | 内部图元定义 |
+| `conns` | list | 否 | 内部连接定义 |
+
 ### 2.2 Node 类型（5种）
 
 | 类型 | 参数 | 说明 |
@@ -73,17 +82,33 @@ nodes:
 
 ```yaml
 conns:
-  # 基础连接（简洁表达）
-  - from: node_id, to: node_id, sig: signal_name
-  
+  # 基础连接
+  - from: node_id
+    to: node_id
+    sig: signal_name
+
   # 端口连接（创建虚拟锚点）
-  - from: node:port, to: node:port, sig: name
-  
+  - from: node:port
+    to: node:port
+    sig: name
+
   # 跨层级（路径语法）
-  - from: block.node, to: node, sig: name
-  
-  # 带标注引用
-  - id: conn_name, from: a, to: b, sig: name, width: 32
+  - from: block.node
+    to: node
+    sig: name
+
+  # 带标注引用（用于 highlight）
+  - id: conn_name
+    from: a
+    to: b
+    sig: name
+    width: 32
+
+  # 指定连接类型
+  - from: src
+    to: dst
+    sig: ctrl
+    type: control  # data/control/bypass
 ```
 
 ### 3.2 端口与连线规则
@@ -106,8 +131,10 @@ conns:
 | `to` | string | 是 | 目标：同上 |
 | `sig` | string | 条件 | 信号名（与 interface 二选一）|
 | `interface` | string | 条件 | 引用预定义接口 |
+| `name` | string | 条件 | 接口实例名（使用 interface 时）|
 | `width` | number | 否 | 位宽 |
 | `id` | string | 否 | 用于 highlight 引用 |
+| `type` | string | 否 | 连接类型：`data`/`control`/`bypass`，影响视觉样式 |
 
 ---
 
@@ -142,32 +169,93 @@ interfaces:
 annotations:
   pipeline:
     name: main_pipe
+    latency: 5                    # 可选：流水线延迟周期
     stages:
-      - { name: IF, nodes: [fetch] }
-      - { name: EX, nodes: [alu] }
+      - name: IF
+        label: "Instruction Fetch"  # 可选：阶段显示名称
+        nodes: [fetch, imem]
+      - name: EX
+        label: "Execute"
+        nodes: [alu, sel]
     # registers 作为阶段间的视觉辅助线
     registers:
       - { between: [IF, EX], label: "IF/EX_Boundary" }
 ```
 
+**Pipeline 字段**：
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 流水线名称 |
+| `latency` | number | 否 | 流水线延迟周期 |
+| `stages` | list | 是 | 阶段定义列表 |
+| `registers` | list | 否 | 阶段间寄存器标注 |
+
+**Stage 字段**：
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 阶段标识（用于 registers 引用）|
+| `label` | string | 否 | 阶段显示名称 |
+| `nodes` | list | 是 | 该阶段包含的 node 列表 |
+
 ### 5.2 Highlight（高亮）
+
+支持两种高亮类型：
+- **`path`**: 高亮路径（连接或节点序列），用于展示数据流、关键路径
+- **`range`**: 高亮区域（多节点范围），用于标注功能模块、关注区域
 
 ```yaml
 highlight:
-  - type: path                    # 或 range
+  # Path 类型：高亮单条连接或路径
+  - type: path
     name: critical_path
-    targets: [conn_id, node_id]   # path 可混合 conn/node
+    targets: [conn_id]            # 连接 id 列表
     color: red
     style: thick                  # thick / dashed
-    label: "~800ps"
+    label: "EX→EX Bypass"
+    delay: "~200ps"               # 可选：延迟标注
+
+  # Range 类型：高亮节点区域
+  - type: range
+    name: bypass_network
+    targets: [node1, node2, conn1]  # 区域内节点和连接
+    color: blue
+    opacity: 0.15                 # 可选：填充透明度 (0.0-1.0)
+    label: "3-to-1 旁路选择器"
 ```
+
+**Highlight 字段**：
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `type` | string | 是 | 高亮类型: `path` / `range` |
+| `name` | string | 是 | 高亮标识 |
+| `targets` | list | 是 | 目标列表（node_id 或 conn_id）|
+| `color` | string | 否 | 颜色名称或十六进制值 |
+| `style` | string | 否 | 线条样式: `thick` / `dashed` |
+| `label` | string | 否 | 显示标签 |
+| `delay` | string | 否 | 延迟标注（仅 path 类型）|
+| `opacity` | number | 否 | 填充透明度（仅 range 类型，0.0-1.0）|
 
 ### 5.3 Notes（注释）
 
 ```yaml
 notes:
-  - { type: note, target: node_id, text: "注释", anchor: bottom }
+  - type: note
+    target: node_id
+    text: "注释内容"
+    anchor: bottom
 ```
+
+**Notes 字段**：
+
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `type` | string | 是 | 注释类型，当前固定为 `note`（预留扩展）|
+| `target` | string | 是 | 目标 node_id |
+| `text` | string | 是 | 注释内容，支持 `\n` 换行 |
+| `anchor` | string | 否 | 锚点位置: `top`/`bottom`/`left`/`right` |
 
 ---
 
