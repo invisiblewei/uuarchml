@@ -75,7 +75,6 @@ chip
 | **inst** | 实例化 block | `block: fetch` | 由 block 定义决定 |
 
 ---
-
 ## 3. DSL 验证方案
 
 验证 LLM 是否能正确理解并生成 uuarchml DSL。
@@ -142,8 +141,6 @@ chip
 | 标注完整 | 15% | pipeline/highlight 正确使用 |
 
 **通过标准**：总分 ≥ 80%，且 L1-L3 全部通过
-
----
 
 ## 4. 文档索引
 
