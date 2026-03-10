@@ -16,7 +16,9 @@
 ## 应用场景
 
 **适用**：表达架构意图，绘制框图辅助沟通。
+
 **范围**：不限于完整芯片，可以是子系统、模块或小功能特性。
+
 **不适用**：精确时序分析、RTL 代码生成、物理布局设计。
 
 ```yaml
@@ -72,6 +74,9 @@ layout: { direction, hints }    # 可选：布局引导
 | `ports` | dict | 否 | **仅 top 类型**，定义芯片边界端口 |
 | `nodes` | dict | 否 | 内部图元定义 |
 | `conns` | list | 否 | 内部连接定义 |
+
+> **关于 `logic` 字段**：建议**单行**描述核心意图（如 `"result = case(alu_op, ADD->a+b, ...)"`）。
+> 复杂实现细节请写在 Markdown 正文，保持 DSL 关注拓扑结构。
 
 ### 2.2 Node 类型
 
@@ -310,13 +315,7 @@ blocks:
   alu_module:
     type: module
     desc: "32位整数ALU，支持加减法和比较"
-    logic: |
-      // 伪代码风格
-      case alu_op:
-        ADD:  result = op_a + op_b
-        SUB:  result = op_a - op_b
-        SLT:  result = (op_a < op_b) ? 1 : 0
-      endcase
+    logic: "result = case(alu_op: ADD->a+b, SUB->a-b, SLT->(a<b))"
     nodes:
       exec: { type: inst }
     conns: []
