@@ -62,6 +62,7 @@ blocks:
       execute:
         type: inst
         block: alu
+        desc: "32位整数ALU，支持算术/逻辑/比较运算"
 
       # MEM Stage
       memory:
@@ -178,35 +179,12 @@ blocks:
         interface: axi4_if
         name: lsu_req
 
-  # ── ALU 模块（展示 logic 字段）──
+  # ── ALU 模块（展示精简 logic 字段）──
   alu:
     type: module
     label: "ALU"
     desc: "32位整数运算单元，支持算术逻辑运算和比较"
-    logic: |
-      // ALU 运算伪代码
-      case alu_op:
-        // 算术运算
-        ADD:  result = operand_a + operand_b
-        SUB:  result = operand_a - operand_b
-        // 逻辑运算
-        AND:  result = operand_a & operand_b
-        OR:   result = operand_a | operand_b
-        XOR:  result = operand_a ^ operand_b
-        // 移位运算
-        SLL:  result = operand_a << operand_b[4:0]
-        SRL:  result = operand_a >> operand_b[4:0]
-        SRA:  result = operand_a >>> operand_b[4:0]
-        // 比较运算
-        SLT:  result = (signed(operand_a) < signed(operand_b)) ? 1 : 0
-        SLTU: result = (operand_a < operand_b) ? 1 : 0
-        default: result = 0
-      endcase
-
-      // 标志位生成
-      zero_flag = (result == 0)
-      overflow_flag = (operand_a[31] == operand_b[31]) &&
-                      (result[31] != operand_a[31])
+    logic: "result = case(alu_op: ADD->a+b, SUB->a-b, AND->a&b, OR->a|b, XOR->a^b, SLL->a<<b, SRL->a>>b, SLT->(a<b))"
     nodes:
       adder: { type: inst }
       shifter: { type: inst }
@@ -400,5 +378,5 @@ annotations:
       anchor: bottom
     - type: note
       target: execute
-      text: "ALU 支持 ADD/SUB/AND/OR/XOR/SLT\n详见 alu.logic 字段"
+      text: "ALU 运算单元"
       anchor: right
