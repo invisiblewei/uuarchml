@@ -46,4 +46,47 @@ blocks:
     expect(result.svg).toContain('polygon');  // mux is a polygon
     expect(result.svg).toContain('ARB');      // arbiter label
   });
+
+  it('should process replica and bulk connections', () => {
+    const yaml = `
+name: replica_test
+blocks:
+  test:
+    type: top
+    nodes:
+      core:
+        type: inst
+        replica: 4
+      l2_bank:
+        type: inst
+        replica: 2
+      arb:
+        type: arbiter
+        masters: 4
+    conns:
+      - from: core[*]
+        to: arb
+        sig: req
+        map: one-to-one
+      - from: core[0..3]
+        to: l2_bank[0..1]
+        sig: data
+        map: one-to-one
+`;
+    const result = processYAML(yaml);
+
+    expect(result.success).toBe(true);
+    expect(result.svg).toContain('<svg');
+    // Should have 6 nodes (4 cores + 2 banks) + 1 arbiter
+    // The expanded nodes should be present
+  });
+
+  it('should process riscv_cpu.yaml', () => {
+    const yaml = readFileSync(resolve(EXAMPLES_DIR, 'riscv_cpu.yaml'), 'utf-8');
+    const result = processYAML(yaml);
+
+    expect(result.success).toBe(true);
+    expect(result.svg).toContain('<svg');
+    expect(result.svg).toContain('</svg>');
+  });
 });
