@@ -13,9 +13,13 @@ export { calculateLayout } from './layout/index.js';
 // Renderer
 export { renderToSVG } from './renderer/index.js';
 
+// Preprocessor
+export { preprocess } from './preprocessor/index.js';
+
 // Convenience function
 import { parseYAML } from './parser/index.js';
 import { validate } from './validator/index.js';
+import { preprocess } from './preprocessor/index.js';
 import { calculateLayout } from './layout/index.js';
 import { renderToSVG } from './renderer/index.js';
 import type { RenderConfig } from './types/render.js';
@@ -50,8 +54,14 @@ export function processYAML(yaml: string, config?: RenderConfig): ProcessResult 
     };
   }
 
+  // Preprocess: expand replica and bulk connections
+  const graph = parseResult.graph;
+  for (const [blockId, block] of Object.entries(graph.blocks)) {
+    graph.blocks[blockId] = preprocess(block);
+  }
+
   // Layout
-  const layout = calculateLayout(parseResult.graph);
+  const layout = calculateLayout(graph);
 
   // Render
   const svg = renderToSVG(layout, config);

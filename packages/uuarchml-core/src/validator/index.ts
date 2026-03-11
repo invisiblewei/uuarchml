@@ -110,14 +110,18 @@ function validateConnection(
   const fromNode = conn.from.split(':')[0];
   const toNode = conn.to.split(':')[0];
 
-  if (!nodeIds.has(fromNode)) {
+  // Skip validation for pattern references (will be expanded by preprocessor)
+  // Includes: range [0..3], wildcard [*], single index [0]
+  const isPattern = (ref: string) => /\[\d+\.\.\d+\]$/.test(ref) || /\[\*\]$/.test(ref) || /\[\d+\]$/.test(ref);
+
+  if (!isPattern(fromNode) && !nodeIds.has(fromNode)) {
     errors.push({
       message: `Connection references unknown node "${fromNode}"`,
       path: `blocks.${blockId}.conns[${index}].from`
     });
   }
 
-  if (!nodeIds.has(toNode)) {
+  if (!isPattern(toNode) && !nodeIds.has(toNode)) {
     errors.push({
       message: `Connection references unknown node "${toNode}"`,
       path: `blocks.${blockId}.conns[${index}].to`
