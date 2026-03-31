@@ -26,5 +26,15 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    fs: {
+      allow: [
+        // Allow serving files from root
+        resolve(__dirname),
+        // Allow serving files from core package
+        resolve(__dirname, 'packages/uuarchml-core'),
+        // Allow serving examples
+        resolve(__dirname, 'examples')
+      ]
+    }
   },
 });

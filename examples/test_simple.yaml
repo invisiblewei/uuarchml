@@ -1,0 +1,14 @@
+name: simple_test
+blocks:
+  test:
+    type: top
+    nodes:
+      alu:
+        type: inst
+      sel:
+        type: mux
+        inputs: 2
+    conns:
+      - from: sel
+        to: alu
+        sig: data

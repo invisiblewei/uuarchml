@@ -1,0 +1,22 @@
+{
+  "name": "uuarchml-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "uuarchml": "./bin/uuarchml.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "commander": "^11.1.0",
+    "uuarchml-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.37",
+    "typescript": "^5.9.3",
+    "vitest": "^1.6.1"
+  }
+}
