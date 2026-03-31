@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>uuarchml Playground</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .header {
+      height: 48px;
+      background: #2d2d30;
+      border-bottom: 1px solid #3e3e42;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+
+    .header h1 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #cccccc;
+      margin-right: auto;
+    }
+
+    .header select {
+      background: #3c3c3c;
+      color: #cccccc;
+      border: 1px solid #3e3e42;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .header button {
+      background: #0e639c;
+      color: white;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .header button:hover {
+      background: #1177bb;
+    }
+
+    .header button.secondary {
+      background: #3c3c3c;
+      border: 1px solid #5a5a5a;
+    }
+
+    .header button.secondary:hover {
+      background: #4c4c4c;
+    }
+
+    .container {
+      display: flex;
+      height: calc(100vh - 48px);
+    }
+
+    .editor-panel {
+      width: 50%;
+      min-width: 300px;
+      border-right: 1px solid #3e3e42;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      height: 32px;
+      background: #252526;
+      border-bottom: 1px solid #3e3e42;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #bbbbbb;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #editor-container {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .preview-panel {
+      width: 50%;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
+      background: #1e1e1e;
+    }
+
+    #preview-container {
+      flex: 1;
+      overflow: auto;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #preview-container svg {
+      max-width: 100%;
+      max-height: 100%;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .error-panel {
+      max-height: 150px;
+      min-height: 50px;
+      background: #2d2d30;
+      border-top: 1px solid #3e3e42;
+      padding: 12px;
+      overflow: auto;
+      display: none;
+    }
+
+    .error-panel.visible {
+      display: block;
+    }
+
+    .error-item {
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      background: rgba(244, 67, 54, 0.1);
+      border-left: 3px solid #f44336;
+      border-radius: 3px;
+      font-size: 13px;
+      color: #f48771;
+    }
+
+    .error-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .placeholder {
+      color: #6e6e6e;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    /* CodeMirror overrides */
+    .cm-editor {
+      height: 100%;
+    }
+
+    .cm-focused {
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>uuarchml Playground</h1>
+    <select id="example-select">
+      <option value="">加载示例...</option>
+      <option value="riscv_cpu.yaml">RISC-V CPU</option>
+      <option value="test_simple.yaml">简单测试</option>
+    </select>
+    <button id="render-btn">渲染</button>
+    <button id="download-btn" class="secondary">下载 SVG</button>
+  </div>
+
+  <div class="container">
+    <div class="editor-panel">
+      <div class="panel-header">YAML Editor</div>
+      <div id="editor-container"></div>
+    </div>
+
+    <div class="preview-panel">
+      <div class="panel-header">预览</div>
+      <div id="preview-container">
+        <div class="placeholder">点击"渲染"按钮生成架构图</div>
+      </div>
+      <div id="error-panel" class="error-panel"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
