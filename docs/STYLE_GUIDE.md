@@ -1,6 +1,6 @@
 # uuarchml Style Guide v0.7.1
 
-**兼容 DSL**: v0.7.1
+**兼容 uuarchml**: v0.7.1
 
 ---
 

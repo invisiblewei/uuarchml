@@ -6,7 +6,7 @@
 
 - **版本**: 0.6.1
 - **技术栈**: TypeScript + pnpm monorepo + dagre.js + SVG 渲染
-- **DSL**: YAML 定义芯片架构
+- **语言**: YAML 定义芯片架构（uuarchml）
 
 ## 核心概念
 
@@ -32,7 +32,7 @@
 ```
 uuarchml/
 ├── docs/
-│   ├── dsl.md                 # YAML DSL 规范 v0.6.1
+│   ├── spec.md                # uuarchml 语言规范 v0.6.1
 │   ├── DESIGN.md              # 设计文档
 │   ├── STYLE_GUIDE.md         # 视觉规范
 │   └── superpowers/plans/     # 实现计划文档
@@ -76,7 +76,7 @@ cd packages/uuarchml-core
 pnpm vitest run
 ```
 
-## YAML DSL 快速参考
+## uuarchml 快速参考
 
 ### 文件结构
 
@@ -184,14 +184,14 @@ renderer → SVG 输出
 
 ## 重要文档
 
-- [dsl.md](docs/dsl.md) - YAML DSL 规范 v0.6.1
+- [spec.md](docs/spec.md) - uuarchml 语言规范 v0.6.1
 - [STYLE_GUIDE.md](docs/STYLE_GUIDE.md) - 视觉规范
 - [DESIGN.md](docs/DESIGN.md) - 架构设计
 
 ## 里程碑
 
 ### Phase 1: MVP ✅ 已完成
-- [x] YAML DSL 设计 v0.6.1
+- [x] uuarchml 语言设计 v0.6.1
 - [x] YAML 解析器（js-yaml）
 - [x] 验证器（validator）
 - [x] **Preprocessor**: replica 展开、批量连接展开
@@ -213,7 +213,7 @@ renderer → SVG 输出
 
 ## 注意事项
 
-1. **DSL 版本**: 当前使用 v0.6.1
+1. **uuarchml 版本**: 当前使用 v0.6.1
 2. **block 定义格式**: 使用 dict 格式（`block_id:`），不是 list
 3. **interface 定义格式**: 使用 dict 格式（`interface_id:`），不是 list
 4. **标注层**: 统一放在 `annotations` 键下

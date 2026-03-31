@@ -1,6 +1,6 @@
 # uuarchml
 
-芯片架构设计可视化工具 —— 基于 YAML 的 DSL，用于 RTL 代码撰写前的 AI 与人对齐。
+芯片架构设计可视化工具 —— 基于 YAML 的 uuarchml 语言，用于 RTL 代码撰写前的 AI 与人对齐。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
