@@ -75,9 +75,9 @@ chip
 | **inst** | 实例化 block | `block: fetch` | 由 block 定义决定 |
 
 ---
-## 3. DSL 验证方案
+## 3. uuarchml 验证方案
 
-验证 LLM 是否能正确理解并生成 uuarchml DSL。
+验证 LLM 是否能正确理解并生成 uuarchml。
 
 ### 3.1 验证等级
 
@@ -91,7 +91,7 @@ chip
 ### 3.2 验证提示词模板
 
 ```
-请根据以下描述生成 uuarchml DSL YAML：
+请根据以下描述生成 uuarchml YAML：
 
 [描述]
 设计一个 3 级流水线 CPU，包含：
@@ -105,8 +105,8 @@ chip
 3. inst 类型省略 block（如果与 id 一致）
 4. 添加 pipeline 标注
 
-[dsl.md 内容]
-[此处插入 dsl.md 全文]
+[spec.md 内容]
+[此处插入 spec.md 全文]
 ```
 
 ### 3.3 验证检查清单
@@ -146,7 +146,7 @@ chip
 
 | 文档 | 内容 |
 |------|------|
-| [dsl.md](dsl.md) | YAML DSL 规范 v0.6 |
+| [spec.md](spec.md) | uuarchml 语言规范 v0.6 |
 | [example.yaml](example.yaml) | RISC-V 五级流水线完整示例 |
 | [STYLE_GUIDE.md](STYLE_GUIDE.md) | 视觉规范 |
 
@@ -164,7 +164,7 @@ chip
 
 | 组件 | 技术 | 说明 |
 |------|------|------|
-| DSL | YAML | 简洁、易读、工具生态好 |
+| uuarchml | YAML | 简洁、易读、工具生态好 |
 | 解析 | js-yaml | YAML 解析器 |
 | 渲染 | 自定义 SVG | 精确控制流水线布局 |
 | 构建 | Vite | 开发服务器 + 打包 |
